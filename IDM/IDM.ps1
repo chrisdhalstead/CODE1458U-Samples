@@ -170,14 +170,46 @@ $global:IDMToken = $sresult.access_token
             
                       
          }          
-
+function Show-Menu
+  {
+    param (
+          [string]$Title = 'IDM Menu'
+          )
+       Clear-Host
+       Write-Host "================ $Title ================"
+             
+       Write-Host "1: Press '1' for a list of IDM Users."
+       Write-Host "2: Press '2' for a list of IDM Groups."
+       Write-Host "3: Press '3' for this option."
+       Write-Host "Q: Press 'Q' to quit."
+         }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-
 LogintoIDM
-GetUsers
-GetGroups
 
+do
+ {
+    Show-Menu
+    $selection = Read-Host "Please make a selection"
+    switch ($selection)
+    {
+    
+    '1' {  
+
+         GetUsers
+    } 
+    
+    '2' {
+   
+         GetGroups
+
+    } '3' {
+      'You chose option #3'
+    }
+    }
+    pause
+ }
+ until ($selection -eq 'q')
 
 
 Write-Log -Message "Finishing Script******************************************************"
