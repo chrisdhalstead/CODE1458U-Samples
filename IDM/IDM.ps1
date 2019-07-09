@@ -92,7 +92,7 @@ Function Write-Log {
    
     }
 
-Function GetIDMToken {
+Function LogintoIDM {
 #Connect to App Volumes Manager
 Write-Host "Getting Token From: $idmserver"
 $headers = @{ Authorization = $basicAuthValue }
@@ -114,40 +114,29 @@ write-Log -Message "Logging on to AppVolumes Manager: $sresult"
 
   } 
 
-  Function LogintoIDM {
-    #Connect to App Volumes Manager
-    Write-Host "Logging on to IDM: $idmserver"
-    $bearerAuthValue = "Bearer $IDMToken"
-    $headers = @{Authorization = $bearerAuthValue }
-    try{$sresult = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/API/1.0/REST/auth/system/login" -Headers $headers
-    }
-    
-    catch {
-      Write-Host "An error occurred when logging on $_"
-      Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-      Write-Log -Message "Finishing Script*************************************"
-      exit 
-    }
-    
-    write-Log -Message "Logging on to AppVolumes Manager: $sresult"
-    
-      } 
       Function GetApps {
         #Connect to App Volumes Manager
-        Write-Host "Getting IDM Apps: $idmserver"
+        Write-Host "Getting IDM Users: $idmserver"
         $bearerAuthValue = "Bearer $IDMToken"
-        $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-        $headers.Add('Accept','application/vnd.vmware.horizon.manager.catalog.item.list+json')
-        $headers.Add('Authorization' , $bearerAuthValue )   
+        $headers = @{ Authorization = $bearerAuthValue }  
 
-        try{$sresult = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=500" -Headers $headers 
+        try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://aw-techzone.vmwareidentity.com/SAAS/jersey/manager/api/scim/Users" -Headers $headers -ContentType "application/json"
         }
         
         catch {
-          Write-Host "An error occurred when logging on $_"
+          Write-Host "An error occurred when getting apps $_"
           Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
           Write-Log -Message "Finishing Script*************************************"
           exit 
+        }
+
+        $json = $scimusers.resources.Username
+
+        foreach ($item in $json)
+        {
+          
+          Write-Host $item
+
         }
         
         write-Log -Message "Logging on to AppVolumes Manager: $sresult"
@@ -156,12 +145,8 @@ write-Log -Message "Logging on to AppVolumes Manager: $sresult"
 
 
 
-
-
-
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-GetIDMToken
 LogintoIDM
 GetApps
 
