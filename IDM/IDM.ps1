@@ -170,6 +170,47 @@ $global:IDMToken = $sresult.access_token
             
                       
          }          
+
+Function CreateUser {
+         
+Write-Host "Getting IDM Groups on: $idmserver"
+$bearerAuthValue = "Bearer $IDMToken"
+$headers = @{ Authorization = $bearerAuthValue }  
+
+$firstname = Read-Host -Prompt 'Input the users first name'
+$lastname = Read-Host -Prompt 'Input the users last name'
+
+$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":${firstname},"familyName":${lastname},"userName":"manualuser","emails":[{"value":"chrisdhalstead@gmail.com"}]}'
+ 
+write-host $UserJson
+
+  try{
+      $scimgroups = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Groups" -Headers $headers -ContentType "application/json"
+             }
+                  
+              catch {
+                Write-Host "An error occurred when getting apps $_"
+                Write-Log -Message "Error when getting groups: $_"
+                Write-Log -Message "Finishing Script*************************************"
+                 exit 
+                    }
+          
+                  $json = $scimgroups.resources
+          
+                  foreach ($item in $json)
+                  {
+                    
+                    Write-Host $item.displayname $item.ID
+          
+                  }
+                  
+                            
+               }
+
+
+
+
+
 function Show-Menu
   {
     param (
@@ -204,7 +245,9 @@ do
          GetGroups
 
     } '3' {
-      'You chose option #3'
+       
+        CreateUser
+      
     }
     }
     pause
