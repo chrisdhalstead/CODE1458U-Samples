@@ -108,19 +108,18 @@ catch {
   exit 
 }
 
+#write the returned oAuth2 token to a Global Variable
 $global:IDMToken = $sresult.access_token
-
-write-Log -Message "Logging on to AppVolumes Manager: $sresult"
 
   } 
 
-      Function GetApps {
-        #Connect to App Volumes Manager
-        Write-Host "Getting IDM Users: $idmserver"
-        $bearerAuthValue = "Bearer $IDMToken"
-        $headers = @{ Authorization = $bearerAuthValue }  
+  Function GetUsers {
+    #Connect to App Volumes Manager
+     Write-Host "Getting IDM Users on: $idmserver"
+     $bearerAuthValue = "Bearer $IDMToken"
+     $headers = @{ Authorization = $bearerAuthValue }  
 
-        try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://aw-techzone.vmwareidentity.com/SAAS/jersey/manager/api/scim/Users" -Headers $headers -ContentType "application/json"
+       try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -ContentType "application/json"
         }
         
         catch {
@@ -139,16 +138,46 @@ write-Log -Message "Logging on to AppVolumes Manager: $sresult"
 
         }
         
-        write-Log -Message "Logging on to AppVolumes Manager: $sresult"
-        
+            
           } 
-
+  
+ Function GetGroups {
+    #Connect to App Volumes Manager
+    Write-Host "Getting IDM Groups on: $idmserver"
+    $bearerAuthValue = "Bearer $IDMToken"
+    $headers = @{ Authorization = $bearerAuthValue }  
+    
+    try{
+      
+      $scimgroups = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Groups" -Headers $headers -ContentType "application/json"
+       }
+            
+            catch {
+              Write-Host "An error occurred when getting apps $_"
+              Write-Log -Message "Error when getting groups: $_"
+              Write-Log -Message "Finishing Script*************************************"
+              exit 
+                  }
+    
+            $json = $scimgroups.resources
+    
+            foreach ($item in $json)
+            {
+              
+              Write-Host $item.displayname $item.ID
+    
+            }
+            
+                      
+         }          
 
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 LogintoIDM
-GetApps
+GetUsers
+GetGroups
+
 
 
 Write-Log -Message "Finishing Script******************************************************"
