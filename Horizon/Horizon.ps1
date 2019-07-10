@@ -57,6 +57,7 @@ $sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
 Add-Content $sLogFile -Value $sLogTitle
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Write-Log {
     [CmdletBinding()]
@@ -84,6 +85,7 @@ $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
 $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
 $Credentials = '{"name":' + $username + ',"passwd":' + $UnsecurePassword +',"domain":' + $domain +'}' 
+$Script:Hash = @{}
 
 try {
     
@@ -97,10 +99,7 @@ catch {
   break
 }
 
-
-
-write-host $sresult.statuscode
-write-host $sresult.headers.CSRFToken
+write-host "Successfully Logged In"
 
 #write the returned oAuth2 token to a Global Variable
 $script:HorizonCSRF = $sresult.headers.CSRFToken
@@ -110,7 +109,7 @@ $script:HorizonSession = $session
 
   } 
 
-  Function GetSessions {
+Function GetSessions {
     
     if ([string]::IsNullOrEmpty($HorizonCSRF))
     {
@@ -118,7 +117,7 @@ $script:HorizonSession = $session
         break   
        
     }
-
+ 
     $headers = @{CSRFToken = $HorizonCSRF}
 
     $SESSIONJSON = '{"queryEntityType":"SessionLocalSummaryView","sortDescending":false,"startingOffset":0}'
@@ -135,24 +134,102 @@ $script:HorizonSession = $session
      break 
     }
     
-    foreach ($item in $sresult.results)
+    if ($sresult.results.Count -eq 0)
     {
+       write-host "No Sessions"
+        break   
+       
+        }
 
+    $query = $sresult.id
       
-        write-host $item.namesData.userName $item.sessiondata.sessiontype | Format-Table
+    #write-host $query   
 
- 
+    write-host "There are" $sresult.results.Count "total sessions"
+        
+    $asses = @()
 
+    foreach ($item in $sresult.results)
+
+    {
+       
+        $stemp = $item.namesdata.username + " " +  $item.namesdata.machineOrRDSServerName + " " +  $item.sessiondata.sessiontype + " " +  $item.sessiondata.sessionstate 
+        write-output $stemp | Format-List
+     }
+
+     
+         
+     try {
+            
+    $killquery = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
+  
     }
-
-
-
     
-   
-   
+    catch {
+
+      Write-Host "An error occurred when logging on $_"
+      Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+      Write-Log -Message "Finishing Script*************************************"
+     break 
+    }
+ 
+  
       } 
 
+Function GetApplications {
 
+   
+        if ([string]::IsNullOrEmpty($HorizonCSRF))
+        {
+           write-host "You are not logged into Horizon"
+            break   
+           
+        }
+    
+        $headers = @{CSRFToken = $HorizonCSRF}
+    
+        $SESSIONJSON = '{"queryEntityType":"ApplicationInfo","sortDescending":false,"startingOffset":0}'
+       
+        try {
+            
+            $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
+        }
+        
+        catch {
+          Write-Host "An error occurred when logging on $_"
+          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+          Write-Log -Message "Finishing Script*************************************"
+         break 
+        }
+        
+        $query = $sresult.id
+                             
+        foreach ($item in $sresult.results)
+        {
+    
+            $stemp = $item.data.name + " " + $item.executiondata.version + " " + $item.executiondata.publisher
+            Write-Output $stemp | Format-List
+
+                                      
+        }
+
+    
+        try {
+            
+            $sresult = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
+        }
+        
+        catch {
+          Write-Host "An error occurred when logging on $_"
+          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+          Write-Log -Message "Finishing Script*************************************"
+         break 
+        }
+    
+    
+      
+       
+          } 
 
 
  
@@ -164,9 +241,10 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "1: Press '1' to Login to Horizon."
-       Write-Host "2: Press '2' for a list of sessions."
-       Write-Host "3: Press '3' for this option."
+       Write-Host "1: Press '1' to Login to Horizon1"
+       Write-Host "2: Press '2' for a list of Sessions"
+       Write-Host "3: Press '3' for a list of Applications"
+       Write-Host "4: Press '4' for a list of Desktops"
        Write-Host "Q: Press 'Q' to quit."
          }
 
@@ -186,11 +264,20 @@ do
    
          GetSessions
 
-    } '3' {
+    }
+    
+    '3' {
        
-        CreateUser
+         GetApplications
       
     }
+    '4' {
+       
+        GetDesktops
+     
+   }
+
+
     }
     pause
  }
