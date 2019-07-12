@@ -124,7 +124,7 @@ Function GetSessions {
    
     try {
         
-        $sresult = Invoke-RestMethod -UseBasicParsing -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
+        $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession 
     }
     
     catch {
@@ -134,35 +134,23 @@ Function GetSessions {
      break 
     }
     
-    if ($sresult.results.Count -eq 0)
-    {
-       write-host "No Sessions"
-        break   
+  if ($sresult.results.Count -eq 0)
+   {
+    write-host "No Sessions"
+    break   
        
-        }
-
+    }
+  
 $query = $sresult.id
-$timestamp = Get-Date -Format o | ForEach-Object { $_ -replace ":", "." }      
+     
+$killsession
 write-host "Results will be logged to: "$sLogPath"\"$sLogName
 write-host "There are" $sresult.results.Count "total sessions"
 
-$killsession 
+$sresult.Results.namesdata | Format-Table -autosize
 
-write-log("Horizon Sessions on $horizonserver at $timestamp")
-write-log("Username,Desktop or RDS")
-
-foreach ($item in $sresult.results) 
-
-{
-
-$stemp = ($item.namesdata.username + "," + $item.namesdata.machineOrRDSServerName)
-
-  Write-Log($stemp)
-  Write-Output $item | Format-Table -AutoSize -Property  @{Name='Username';Expression={$item.namesdata.username}},@{Name='Desktop or RDS';Expression={$item.namesdata.machineOrRDSServerName}}
-
-}
-         
-    try {
+#Clean Up
+  try {
             
           $killsession = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
   
@@ -178,8 +166,6 @@ $stemp = ($item.namesdata.username + "," + $item.namesdata.machineOrRDSServerNam
  
     
       } 
-
-
 Function GetApplications {
 
    
@@ -207,16 +193,10 @@ Function GetApplications {
         }
         
         $query = $sresult.id
-                             
-        foreach ($item in $sresult.results)
-        {
-    
-            $stemp = $item.data.name + " " + $item.executiondata.version + " " + $item.executiondata.publisher
-            Write-Output $stemp | Format-List
+        write-host "There are" $sresult.results.Count "total applications"
 
-                                      
-        }
-
+        $sresult.Results.data | Format-Table -autosize       
+      
     
         try {
             
@@ -234,7 +214,53 @@ Function GetApplications {
        
           } 
 
+Function GetEvents {
 
+   
+  if ([string]::IsNullOrEmpty($HorizonCSRF))
+        {
+            write-host "You are not logged into Horizon"
+            break   
+               
+        }
+        
+  $headers = @{CSRFToken = $HorizonCSRF}
+        
+  $SESSIONJSON = '{"queryEntityType":"EventSummaryView","sortDescending":true,"startingOffset":0,"sortBy":"data.time","limit":50,"maxPageSize":50}'
+           
+            try {
+                
+                $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
+            }
+            
+            catch {
+              Write-Host "An error occurred when logging on $_"
+              Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+              Write-Log -Message "Finishing Script*************************************"
+             break 
+            }
+            
+            $query = $sresult.id
+            write-host "There are" $sresult.results.Count "events shown"
+    
+            $sresult.Results.data | Format-list -Property EventType,severity,message
+          
+        
+            try {
+                
+                $sresult = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
+            }
+            
+            catch {
+              Write-Host "An error occurred when logging on $_"
+              Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+              Write-Log -Message "Finishing Script*************************************"
+             break 
+            }
+         
+          
+           
+              } 
  
 function Show-Menu
   {
@@ -245,9 +271,9 @@ function Show-Menu
        Write-Host "================ $Title ================"
              
        Write-Host "1: Press '1' to Login to Horizon"
-       Write-Host "2: Press '2' for a list of Sessions"
-       Write-Host "3: Press '3' for a list of Applications"
-       Write-Host "4: Press '4' for a list of Desktops"
+       Write-Host "2: Press '2' for a List of Sessions"
+       Write-Host "3: Press '3' for a List of Applications"
+       Write-Host "4: Press '4' for Recent Events"
        Write-Host "Q: Press 'Q' to quit."
          }
 
@@ -276,7 +302,7 @@ do
     }
     '4' {
        
-        GetDesktops
+        GetEvents
      
    }
 

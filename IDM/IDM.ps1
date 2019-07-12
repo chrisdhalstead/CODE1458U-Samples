@@ -44,19 +44,6 @@
     Enter yes to update the sizes.  Type anything else for a list of writable volumes.
 #>
 
-[CmdletBinding()]
-    Param(
-
-        [Parameter(Mandatory=$True)]
-        [string]$IDMClientID,
-           
-        [Parameter(Mandatory=$True)]
-        [string]$IDMSharedSecret,
-
-        [Parameter(Mandatory=$True)]
-        [string]$IDMServer
-
-)
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 #Log File Info
@@ -69,12 +56,6 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
 Add-Content $sLogFile -Value $sLogTitle
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-$pair = "${IDMclientID}:${IDMSharedSecret}"
-$bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-$base64 = [System.Convert]::ToBase64String($bytes)
-$basicAuthValue = "Basic $base64"
-
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Write-Log {
@@ -94,11 +75,21 @@ Function Write-Log {
 
 Function LogintoIDM {
 #Connect to App Volumes Manager
+
+$script:idmserver = Read-Host -Prompt 'Enter the IDM Server Name'
+$IDMclientID = Read-Host -Prompt 'Enter the oAuth2 Client ID'
+$IDMSharedSecret = Read-Host -Prompt 'Enter the Shared Secret' 
+
+$pair = "${IDMclientID}:${IDMSharedSecret}"
+$bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+$base64 = [System.Convert]::ToBase64String($bytes)
+$basicAuthValue = "Basic $base64"
+
 Write-Host "Getting Token From: $idmserver"
 $headers = @{ Authorization = $basicAuthValue }
 try {
     
-    $sresult = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/API/1.0/oauth2/token?grant_type=client_credentials" -Headers $headers -SessionVariable IDMSession
+    $sresult = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/API/1.0/oauth2/token?grant_type=client_credentials" -Headers $headers 
 }
 
 catch {
@@ -109,12 +100,22 @@ catch {
 }
 
 #write the returned oAuth2 token to a Global Variable
-$global:IDMToken = $sresult.access_token
+$script:IDMToken = $sresult.access_token
+
+Write-Host "Successfully Logged In"
 
   } 
 
   Function GetUsers {
-    #Connect to App Volumes Manager
+
+    if ([string]::IsNullOrEmpty($IDMToken))
+    {
+       write-host "You are not logged into Horizon"
+        break   
+       
+    }
+
+
      Write-Host "Getting IDM Users on: $idmserver"
      $bearerAuthValue = "Bearer $IDMToken"
      $headers = @{ Authorization = $bearerAuthValue }  
@@ -129,16 +130,8 @@ $global:IDMToken = $sresult.access_token
           exit 
         }
 
-        $json = $scimusers.resources.Username
-
-        foreach ($item in $json)
-        {
-          
-          Write-Host $item
-
-        }
-        
-            
+        $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
+           
           } 
   
  Function GetGroups {
@@ -179,13 +172,17 @@ $headers = @{ Authorization = $bearerAuthValue }
 
 $firstname = Read-Host -Prompt 'Input the users first name'
 $lastname = Read-Host -Prompt 'Input the users last name'
+$username = read-host -Prompt 'Input the User Name'
+$emailaddress = Read-Host -Prompt 'Input the users email address'
 
-$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":${firstname},"familyName":${lastname},"userName":"manualuser","emails":[{"value":"chrisdhalstead@gmail.com"}]}'
+$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":' + ${firstname} + ',"familyName":' + ${lastname} + ',"userName":"manualuser","emails":[{"value":"chrisdhalstead@gmail.com"}]}' | ConvertTo-Json
  
-write-host $UserJson
+$UserJson = $UserJson.Trim()
+
 
   try{
-      $scimgroups = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Groups" -Headers $headers -ContentType "application/json"
+     
+    $smimcreate = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -Body $UserJson -ContentType "application/json;charset=UTF-8"
              }
                   
               catch {
@@ -208,26 +205,21 @@ write-host $UserJson
                }
 
 
-
-
-
 function Show-Menu
   {
     param (
-          [string]$Title = 'IDM Menu'
+          [string]$Title = 'IDM API Menu'
           )
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "1: Press '1' for a list of IDM Users."
-       Write-Host "2: Press '2' for a list of IDM Groups."
-       Write-Host "3: Press '3' for this option."
+       Write-Host "1: Press '1' to Login to IDM"
+       Write-Host "2: Press '2' for a list of IDM User."
+       Write-Host "3: Press '3' to create a local user"
        Write-Host "Q: Press 'Q' to quit."
          }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-LogintoIDM
-
 do
  {
     Show-Menu
@@ -237,12 +229,12 @@ do
     
     '1' {  
 
-         GetUsers
+         LogintoIDM
     } 
     
     '2' {
    
-         GetGroups
+         GetUsers
 
     } '3' {
        
