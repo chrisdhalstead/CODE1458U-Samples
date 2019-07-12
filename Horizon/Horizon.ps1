@@ -51,7 +51,7 @@ $sLogPath = $env:TEMP
 $sDomain = $env:USERDOMAIN
 $sUser = $env:USERNAME
 $sComputer = $env:COMPUTERNAME
-$sLogName = "horizon.log"
+$sLogName = "Horizon.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
 Add-Content $sLogFile -Value $sLogTitle
@@ -124,7 +124,7 @@ Function GetSessions {
    
     try {
         
-        $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
+        $sresult = Invoke-RestMethod -UseBasicParsing -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
     }
     
     catch {
@@ -141,27 +141,30 @@ Function GetSessions {
        
         }
 
-    $query = $sresult.id
-      
-    #write-host $query   
+$query = $sresult.id
+$timestamp = Get-Date -Format o | ForEach-Object { $_ -replace ":", "." }      
+write-host "Results will be logged to: "$sLogPath"\"$sLogName
+write-host "There are" $sresult.results.Count "total sessions"
 
-    write-host "There are" $sresult.results.Count "total sessions"
-        
-    $asses = @()
+$killsession 
 
-    foreach ($item in $sresult.results)
+write-log("Horizon Sessions on $horizonserver at $timestamp")
+write-log("Username,Desktop or RDS")
 
-    {
-       
-        $stemp = $item.namesdata.username + " " +  $item.namesdata.machineOrRDSServerName + " " +  $item.sessiondata.sessiontype + " " +  $item.sessiondata.sessionstate 
-        write-output $stemp | Format-List
-     }
+foreach ($item in $sresult.results) 
 
-     
+{
+
+$stemp = ($item.namesdata.username + "," + $item.namesdata.machineOrRDSServerName)
+
+  Write-Log($stemp)
+  Write-Output $item | Format-Table -AutoSize -Property  @{Name='Username';Expression={$item.namesdata.username}},@{Name='Desktop or RDS';Expression={$item.namesdata.machineOrRDSServerName}}
+
+}
          
-     try {
+    try {
             
-    $killquery = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
+          $killsession = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
   
     }
     
@@ -173,8 +176,9 @@ Function GetSessions {
      break 
     }
  
-  
+    
       } 
+
 
 Function GetApplications {
 
@@ -225,8 +229,7 @@ Function GetApplications {
           Write-Log -Message "Finishing Script*************************************"
          break 
         }
-    
-    
+     
       
        
           } 
@@ -241,7 +244,7 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "1: Press '1' to Login to Horizon1"
+       Write-Host "1: Press '1' to Login to Horizon"
        Write-Host "2: Press '2' for a list of Sessions"
        Write-Host "3: Press '3' for a list of Applications"
        Write-Host "4: Press '4' for a list of Desktops"
