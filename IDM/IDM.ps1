@@ -104,8 +104,9 @@ do {
 
       $allusers = $scimusers.totalresults
       $stotal = $stotal += $scimusers.itemsPerPage
+      write-host "Found $allusers users (returning $istartat to $stotal)"
       $istartat += $scimusers.itemsPerPage
-    
+      
       $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
   
 } until ($allusers -eq $stotal)
