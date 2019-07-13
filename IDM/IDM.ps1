@@ -1,9 +1,6 @@
 <#
 .SYNOPSIS
   Script to update the size of VMware App Volumes Writable Volumes.  Can also be used to view sizes of volumes.
-	
-.INPUTS
-  Parameters Below
 
 .OUTPUTS
   Log file stored in %temp%\expand-wv.log>
@@ -16,34 +13,7 @@
   **This script and the App Volumes API is not supported by VMware**
   New sizes won't be reflected until a user logs in and attaches the Writable Volume	
   
-.EXAMPLE
- .\Expand-WV.ps1 
-        -AppVolumesServerFQDN "avmanager.company.com"
-        -AppVolumesDomain "mydomain" 
-        -AppVolumesUser "Username" 
-        -AppVolumesPassword "SecurePassword" 
-        -New_Size_In_MB "40960" 
-        -Update_WV_Size "yes" 
-
-    .PARAMETER AppVolumesServerFQDN
-    The FQDN of the App Volumes Manager where you want to view / change the Writable Volumes
-
-    .PARAMETER AppVolumesDomain
-    Active Directory Domain of the user with Administrative access
-
-    .PARAMETER AppVolumesUser
-    Active Directoty User with administrative access
-
-    .PARAMETER AppVolumesPassword
-    The password that is used by the user specified in the username parameter
-
-    .PARAMETER New_Size_In_MB
-    New size for the writable volumes in Megabytes. Take gigabytes and mutltiply by 1024.
-
-    .PARAMETER Update_WV_Size
-    Enter yes to update the sizes.  Type anything else for a list of writable volumes.
 #>
-
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 #Log File Info
@@ -74,7 +44,7 @@ Function Write-Log {
     }
 
 Function LogintoIDM {
-#Connect to App Volumes Manager
+#Connect to IDM
 
 $script:idmserver = Read-Host -Prompt 'Enter the IDM Server Name'
 $IDMclientID = Read-Host -Prompt 'Enter the oAuth2 Client ID'
@@ -93,10 +63,9 @@ try {
 }
 
 catch {
-  Write-Host "An error occurred when logging on $_"
-  Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-  Write-Log -Message "Finishing Script*************************************"
-  exit 
+
+  Write-Host "An error occurred when logging on to IDM $_"
+  break 
 }
 
 #write the returned oAuth2 token to a Global Variable
@@ -110,7 +79,7 @@ Write-Host "Successfully Logged In"
 
     if ([string]::IsNullOrEmpty($IDMToken))
     {
-       write-host "You are not logged into Horizon"
+       write-host "You are not logged into IDM"
         break   
        
     }
@@ -119,18 +88,28 @@ Write-Host "Successfully Logged In"
      Write-Host "Getting IDM Users on: $idmserver"
      $bearerAuthValue = "Bearer $IDMToken"
      $headers = @{ Authorization = $bearerAuthValue }  
-
-       try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -ContentType "application/json"
+     $allusers
+   
+ 
+$istartat = 1     
+ 
+do {
+ 
+  try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?startIndex=$istartat" -Headers $headers -ContentType "application/json"
         }
-        
-        catch {
-          Write-Host "An error occurred when getting apps $_"
-          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-          Write-Log -Message "Finishing Script*************************************"
-          exit 
+                catch {
+          Write-Host "An error occurred when getting users $_"
+          break 
         }
 
-        $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
+      $allusers = $scimusers.totalresults
+      $stotal = $stotal += $scimusers.itemsPerPage
+      $istartat += $scimusers.itemsPerPage
+    
+      $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
+  
+} until ($allusers -eq $stotal)
+
            
           } 
   
@@ -146,22 +125,13 @@ Write-Host "Successfully Logged In"
        }
             
             catch {
-              Write-Host "An error occurred when getting apps $_"
-              Write-Log -Message "Error when getting groups: $_"
-              Write-Log -Message "Finishing Script*************************************"
-              exit 
+              Write-Host "An error occurred when getting IDM Groups $_"
+              
+              break 
                   }
     
-            $json = $scimgroups.resources
-    
-            foreach ($item in $json)
-            {
-              
-              Write-Host $item.displayname $item.ID
-    
-            }
-            
-                      
+                  $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
+                                  
          }          
 
 Function CreateUser {
@@ -175,31 +145,21 @@ $lastname = Read-Host -Prompt 'Input the users last name'
 $username = read-host -Prompt 'Input the User Name'
 $emailaddress = Read-Host -Prompt 'Input the users email address'
 
-$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":' + ${firstname} + ',"familyName":' + ${lastname} + ',"userName":"manualuser","emails":[{"value":"chrisdhalstead@gmail.com"}]}' | ConvertTo-Json
- 
-$UserJson = $UserJson.Trim()
-
+$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":"VMworld","familyName":"Demo"},"userName":"vmdemo","emails":[{"value":"chalstead@vmware.com"}]}'
 
   try{
      
-    $smimcreate = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -Body $UserJson -ContentType "application/json;charset=UTF-8"
+    $scimcreate = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -Body $UserJson -ContentType "application/json;charset=UTF-8"
              }
-                  
-              catch {
-                Write-Host "An error occurred when getting apps $_"
-                Write-Log -Message "Error when getting groups: $_"
-                Write-Log -Message "Finishing Script*************************************"
-                 exit 
+  
+                           catch {
+                Write-Host "An error occurred when creating a user $_"
+             
+                 break
+                 
                     }
           
-                  $json = $scimgroups.resources
-          
-                  foreach ($item in $json)
-                  {
-                    
-                    Write-Host $item.displayname $item.ID
-          
-                  }
+                $scimcreate.Resources | Format-Table -autosize -Property active,username,name,emails
                   
                             
                }
