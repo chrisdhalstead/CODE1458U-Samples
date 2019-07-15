@@ -47,6 +47,7 @@ Function Write-Log {
 
 Function LogintoAppVolumes {
 
+#Get Values from User
 $script:AppVolServer = Read-Host -Prompt 'Enter the App Volumes Manager Name'
 $Username = Read-Host -Prompt 'Enter the Username'
 $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
