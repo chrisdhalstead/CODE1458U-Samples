@@ -45,39 +45,40 @@ Function Write-Log {
    
     }
 
-Function LogintoWSO {
+Function SearchForDevices {
 
-#Get Values from User
-$script:WSOServer = Read-Host -Prompt 'Enter the Workspace ONE UEM Server Name'
-$Username = Read-Host -Prompt 'Enter the Username'
-$Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
-$apikey = Read-Host -Prompt 'Enter the API Key'
-$og = Read-Host -Prompt 'Enter the Organization Group Name'
+if ([string]::IsNullOrEmpty($wsoserver))
+  {
+    $script:WSOServer = Read-Host -Prompt 'Enter the Workspace ONE UEM Server Name'
+    
+  }
+ if ([string]::IsNullOrEmpty($header))
+  {
+    $Username = Read-Host -Prompt 'Enter the Username'
+    $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
+    $apikey = Read-Host -Prompt 'Enter the API Key'
 
-#Convert the Password
-$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
-$UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    #Convert the Password
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+    $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
-$URL = $AirwatchServer + "/api"
+    #Base64 Encode AW Username and Password
+    $combined = $Username + ":" + $UnsecurePassword
+    $encoding = [System.Text.Encoding]::ASCII.GetBytes($combined)
+    $cred = [Convert]::ToBase64String($encoding)
 
-#Base64 Encode AW Username and Password
-$combined = $Username + ":" + $UnsecurePassword
-$encoding = [System.Text.Encoding]::ASCII.GetBytes($combined)
-$cred = [Convert]::ToBase64String($encoding)
-
-
-$header = @{
+    $script:header = @{
     "Authorization"  = "Basic $cred";
     "aw-tenant-code" = $apikey;
     "Accept"		 = "application/json";
     "Content-Type"   = "application/json";}
+  }
 
-$Credentials = '{"username":"' + $username + '","password":"' + $unsecurepassword + '","domain":"' + $domain + '"}'
+$user = Read-Host -Prompt 'Enter a user name'
 
-#Login to AppVolumes
 try {
     
-  $sresult = Invoke-RestMethod -Method Post -Uri "https://$appvolserver/cv_api/sessions" -Body $Credentials -ContentType "application/json" -SessionVariable avsession  
+  $sresult = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/api/mdm/devices/search?user=$user" -Body $Credentials -ContentType "application/json" -Header $header
 
 }
 
@@ -87,13 +88,10 @@ catch {
 }
 
 #Logged In
-$sresult | Format-List
-write-host "Successfully Logged In"
+$sresult.devices | Format-table -AutoSize -Property DeviceFriendlyname,Enrollmentstatus,LocationGroupName,UserName,Ownership,Platform
 
-#Save the AV session state to a varable - contains cookies with session information
-$script:AVSession = $avsession
+} 
 
-  } 
 
 
 function Show-Menu
@@ -103,17 +101,10 @@ function Show-Menu
           )
        Clear-Host
        Write-Host "================ $Title ================"
-       Write-Host "Press '1' to Login to Workspace ONE UEM"
-       Write-Host "======AppStack Operations======"
+       Write-Host "Press '1' to show devices by username"
        Write-Host "Press '2' for a List of AppStacks"
        Write-Host "Press '3' for AppStack Details"
        Write-Host "Press '4' for a List of Applications in an AppStack"
-       write-host "======Writable Volume Operations======"
-       Write-Host "Press '5' for Writable Volumes"
-       Write-Host "Press '6' for a List of Applications in an AppStack"
-       Write-Host "======System Information======"
-       Write-Host "Press '7' for the Activity Log"
-       Write-Host "Press '8' for Online Entities"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -127,7 +118,7 @@ do
     
     '1' {  
 
-         LogintoWSO
+         SearchForDevices
     } 
     
     '2' {
