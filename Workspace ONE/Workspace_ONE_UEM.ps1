@@ -74,7 +74,7 @@ if ([string]::IsNullOrEmpty($wsoserver))
     "Content-Type"   = "application/json";}
   }
 
-$user = Read-Host -Prompt 'Enter a user name'
+$user = Read-Host -Prompt 'Enter a user name to show devices'
 
 try {
     
@@ -92,7 +92,61 @@ $sresult.devices | Format-table -AutoSize -Property DeviceFriendlyname,Enrollmen
 
 } 
 
+Function SearchForGroups {
 
+  if ([string]::IsNullOrEmpty($wsoserver))
+    {
+      $script:WSOServer = Read-Host -Prompt 'Enter the Workspace ONE UEM Server Name'
+      
+    }
+   if ([string]::IsNullOrEmpty($header))
+    {
+      $Username = Read-Host -Prompt 'Enter the Username'
+      $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
+      $apikey = Read-Host -Prompt 'Enter the API Key'
+  
+      #Convert the Password
+      $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+      $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+  
+      #Base64 Encode AW Username and Password
+      $combined = $Username + ":" + $UnsecurePassword
+      $encoding = [System.Text.Encoding]::ASCII.GetBytes($combined)
+      $cred = [Convert]::ToBase64String($encoding)
+  
+      $script:header = @{
+      "Authorization"  = "Basic $cred";
+      "aw-tenant-code" = $apikey;
+      "Accept"		 = "application/json";
+      "Content-Type"   = "application/json";}
+    }
+  
+  $group = Read-Host -Prompt 'Enter a group name'
+  
+  try {
+      
+    $sresult = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/API/system/groups/search?name=$group" -Body $Credentials -ContentType "application/json" -Header $header
+  
+  }
+  
+  catch {
+    Write-Host "An error occurred when logging on $_"
+    break
+  }
+  
+if ($sresult.total -eq 0) {
+
+  Write-Host "No Results"
+  break
+
+}
+
+  #Logged In
+  $sresult.LocationGroups | Format-table -AutoSize 
+  
+  } 
+  
+  
 
 function Show-Menu
   {
@@ -102,7 +156,7 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
        Write-Host "Press '1' to show devices by username"
-       Write-Host "Press '2' for a List of AppStacks"
+       Write-Host "Press '2' to show groups by name"
        Write-Host "Press '3' for AppStack Details"
        Write-Host "Press '4' for a List of Applications in an AppStack"
        Write-Host "Press 'Q' to quit."
@@ -123,7 +177,7 @@ do
     
     '2' {
    
-         ListAppStacks
+         SearchForGroups
 
     }
     
