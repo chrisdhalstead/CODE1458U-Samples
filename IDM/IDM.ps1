@@ -126,7 +126,7 @@ do {
        }
             
             catch {
-              Write-Host "An error occurred when getting IDM Groups $_"
+              Write-Host "An error occurred when getting IDM groups $_"
               
               break 
                   }
@@ -139,7 +139,9 @@ Function GetApps {
 #Connect to App Volumes Manager
 Write-Host "Getting health of: $idmserver"
 $bearerAuthValue = "Bearer $IDMToken"
-$headers = @{ Authorization = $bearerAuthValue }  
+$headers = @{Authorization = $bearerAuthValue
+             Accept = "application/vnd.vmware.horizon.manager.catalog.item.list+json"
+            }  
           
 try {
        
@@ -162,40 +164,90 @@ try {
     "rootResource": false
   }'
   
-  $health = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=500" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.catalog.search+json"
+  $apps = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=50" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.catalog.search+json"
 
     }
                   
       catch {
-             Write-Host "An error occurred when getting IDM Groups $_"
+             Write-Host "An error occurred when getting IDM Apps $_"
              break 
             }
           
-            $health | Format-list 
+            $apps.items | Format-table -AutoSize -Property Name,Description,CatalogItemType
                                         
             }          
 
-            Function ServiceHealth {
-              #Connect to App Volumes Manager
-              Write-Host "Getting health of: $idmserver"
-              $bearerAuthValue = "Bearer $IDMToken"
-              $headers = @{ Authorization = $bearerAuthValue }  
-                        
-              try {
-                          
-                $health = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/system/health" -Headers $headers -ContentType "application/json"
-              
-                  }
-                                
-                    catch {
-                           Write-Host "An error occurred when getting IDM Groups $_"
-                           break 
-                          }
-                        
-                          $health | Format-list 
-                                                      
-                          }           
+Function GetCategories {
 
+  Write-Host "Getting health of: $idmserver"
+  $bearerAuthValue = "Bearer $IDMToken"
+  $headers = @{Authorization = $bearerAuthValue
+               Accept = "application/vnd.vmware.horizon.manager.labels+json"
+               }  
+                        
+    try {
+               
+    $cats = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/labels" -Headers $headers -ContentType "application/vnd.vmware.horizon.manager.labels+json;charset=UTF-8"
+              
+        }
+                                
+    catch {
+          Write-Host "An error occurred when getting IDM Apps $_"
+          break 
+          }
+                        
+$cats.items | Format-table -AutoSize -Property ID,Name
+                                                      
+}   
+
+Function New_Category {
+
+  Write-Host "Getting health of: $idmserver"
+  $bearerAuthValue = "Bearer $IDMToken"
+  $headers = @{Authorization = $bearerAuthValue
+               Accept = "application/vnd.vmware.horizon.manager.label+json"
+               }  
+ 
+$newcatname = Read-Host -Prompt 'Enter the Category Name' 
+               
+    try {
+               
+$json = '{"name":"' + $newcatname + '"}'
+
+    $cats = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/labels" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.label+json;charset=UTF-8"
+              
+        }
+                                
+    catch {
+          Write-Host "An error occurred when getting IDM Apps $_"
+          break 
+          }
+                        
+$cats.items | Format-table -AutoSize 
+                                                      
+}
+              
+
+Function ServiceHealth {
+             
+Write-Host "Getting health of: $idmserver"
+$bearerAuthValue = "Bearer $IDMToken"
+$headers = @{ Authorization = $bearerAuthValue }  
+                        
+try {
+                          
+      $health = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/system/health" -Headers $headers -ContentType "application/json"
+              
+    }
+                                
+catch {
+      Write-Host "An error occurred when getting IDM Groups $_"
+      break 
+      }
+                        
+$health | Format-list 
+                                                      
+}          
               
 Function CreateUser {
          
@@ -237,10 +289,12 @@ function Show-Menu
        Write-Host "================ $Title ================"
              
        Write-Host "Press '1' to Login to IDM"
-       Write-Host "Press '2' for a list of IDM User."
-       Write-Host "Press '3' to create a local user"
-       Write-Host "Press '4' for service health check"
-       Write-Host "Press '5' for service health check"
+       Write-Host "Press '2' for a list of IDM Users"
+       Write-Host "Press '3' to create a Local User"
+       Write-Host "Press '4' for a list of Apps"
+       Write-Host "Press '5' for a list of the Categories"
+       Write-Host "Press '6' to add a new Category"
+       Write-Host "Press '7' for IDM Service Health"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -272,15 +326,29 @@ do
    
     '4' {
        
-      ServiceHealth
+    GetApps
+      
     
   }
 
   '5' {
        
-    Getapps
+GetCategories
   
 }
+
+
+'6' {
+       
+  New_Category
+    
+  }
+
+'7' {
+       
+  ServiceHealth
+    
+  }
 
     }
     pause
