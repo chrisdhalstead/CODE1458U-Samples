@@ -131,10 +131,72 @@ do {
               break 
                   }
     
-                  $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
+                  $scimgroups.Resources | Format-Table -autosize -Property active,username,name,emails
                                   
          }          
 
+Function GetApps {
+#Connect to App Volumes Manager
+Write-Host "Getting health of: $idmserver"
+$bearerAuthValue = "Bearer $IDMToken"
+$headers = @{ Authorization = $bearerAuthValue }  
+          
+try {
+       
+
+  $json = '{
+    "includeAttributes": [
+      "labels",
+      "uiCapabilities",
+      "authInfo"
+    ],
+    "includeTypes": [
+      "Saml11",
+      "Saml20",
+      "WSFed12",
+      "WebAppLink",
+      "AnyApp"
+    ],
+    "nameFilter": "",
+    "categories": [],
+    "rootResource": false
+  }'
+  
+  $health = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=500" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.catalog.search+json"
+
+    }
+                  
+      catch {
+             Write-Host "An error occurred when getting IDM Groups $_"
+             break 
+            }
+          
+            $health | Format-list 
+                                        
+            }          
+
+            Function ServiceHealth {
+              #Connect to App Volumes Manager
+              Write-Host "Getting health of: $idmserver"
+              $bearerAuthValue = "Bearer $IDMToken"
+              $headers = @{ Authorization = $bearerAuthValue }  
+                        
+              try {
+                          
+                $health = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/system/health" -Headers $headers -ContentType "application/json"
+              
+                  }
+                                
+                    catch {
+                           Write-Host "An error occurred when getting IDM Groups $_"
+                           break 
+                          }
+                        
+                          $health | Format-list 
+                                                      
+                          }           
+
+              
 Function CreateUser {
          
 Write-Host "Getting IDM Groups on: $idmserver"
@@ -146,26 +208,26 @@ $lastname = Read-Host -Prompt 'Input the users last name'
 $username = read-host -Prompt 'Input the User Name'
 $emailaddress = Read-Host -Prompt 'Input the users email address'
 
-$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":"VMworld","familyName":"Demo"},"userName":"vmdemo","emails":[{"value":"chalstead@vmware.com"}]}'
+$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":"' + $firstname + '","familyName":"'+ $lastname +'"},"userName":"' + $username + '","emails":[{"value":"' + $emailaddress + '"}]}'
+
+$userjson
 
   try{
      
     $scimcreate = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -Body $UserJson -ContentType "application/json;charset=UTF-8"
              }
   
-                           catch {
-                Write-Host "An error occurred when creating a user $_"
+              catch {
+              Write-Host "An error occurred when creating a user $_"
              
-                 break
+              break
                  
-                    }
+                }
           
-                $scimcreate.Resources | Format-Table -autosize -Property active,username,name,emails
+                  $scimcreate.Resources | Format-Table -autosize -Property active,username,name,emails
                   
-                            
-               }
-
-
+                }
+                
 function Show-Menu
   {
     param (
@@ -174,10 +236,12 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "1: Press '1' to Login to IDM"
-       Write-Host "2: Press '2' for a list of IDM User."
-       Write-Host "3: Press '3' to create a local user"
-       Write-Host "Q: Press 'Q' to quit."
+       Write-Host "Press '1' to Login to IDM"
+       Write-Host "Press '2' for a list of IDM User."
+       Write-Host "Press '3' to create a local user"
+       Write-Host "Press '4' for service health check"
+       Write-Host "Press '5' for service health check"
+       Write-Host "Press 'Q' to quit."
          }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
@@ -197,11 +261,27 @@ do
    
          GetUsers
 
-    } '3' {
+    } 
+    
+    '3' {
        
         CreateUser
       
     }
+
+   
+    '4' {
+       
+      ServiceHealth
+    
+  }
+
+  '5' {
+       
+    Getapps
+  
+}
+
     }
     pause
  }
