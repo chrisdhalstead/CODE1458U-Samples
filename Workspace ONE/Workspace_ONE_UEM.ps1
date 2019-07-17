@@ -70,7 +70,7 @@ if ([string]::IsNullOrEmpty($wsoserver))
     $script:header = @{
     "Authorization"  = "Basic $cred";
     "aw-tenant-code" = $apikey;
-    "Accept"		 = "application/json";
+    "Accept"		 = "application/json;version=2";
     "Content-Type"   = "application/json";}
   }
 
@@ -78,7 +78,7 @@ $user = Read-Host -Prompt 'Enter a user name to show devices'
 
 try {
     
-  $sresult = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/api/mdm/devices/search?user=$user" -Body $Credentials -ContentType "application/json" -Header $header
+  $sresult = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/api/mdm/devices/search?user=$user" -ContentType "application/json" -Header $header
 
 }
 
@@ -87,8 +87,24 @@ catch {
   break
 }
 
-#Logged In
-$sresult.devices | Format-table -AutoSize -Property DeviceFriendlyname,Enrollmentstatus,LocationGroupName,UserName,Ownership,Platform
+
+foreach ($id in $sresult.devices.uuid) {
+
+  try {
+    
+    $device = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/API/mdm/devices/$id" -ContentType "application/json" -Header $header
+    $device | format-list -Property @{Name = 'Username'; Expression = {$_.enrollmentinfo.username}},FriendlyName,@{Name = 'OS'; Expression = {$_.platforminfo.osversion}},DataEncrypted,@{Name = 'Enrollment Status'; Expression = {$_.enrollmentinfo.enrollmentstatus}}
+
+  }
+  catch {
+    
+    Write-Host "An error occurred when getting device $_"
+    break
+
+  }
+  
+}
+
 
 } 
 

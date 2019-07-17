@@ -76,7 +76,6 @@ write-host "Successfully Logged In"
 
 #write the returned oAuth2 token to a Global Variable
 $script:HorizonCSRF = $sresult.headers.CSRFToken
-$Script:HorizonCookie = $sresult.BaseResponse.Cookies
 $script:HorizonSession = $session
 
 
@@ -120,7 +119,7 @@ $killsession
 write-host "Results will be logged to: "$sLogPath"\"$sLogName
 write-host "There are" $sresult.results.Count "total sessions"
 
-$sresult.Results.namesdata | Format-Table -autosize
+$sresult.Results | Format-Table -AutoSize -Property @{Name = 'Username'; Expression = {$_.namesdata.username}},@{Name = 'Machine or RDS Server'; Expression = {$_.namesdata.machineorrdsservername}},@{Name = 'Session Type'; Expression = {$_.sessiondata.sessiontype}},@{Name = 'Client Type'; Expression = {$_.namesdata.sessiontype}}
 
 #Clean Up
   try {
@@ -187,6 +186,41 @@ Function GetApplications {
        
           } 
 
+
+Function GetLicenseUsage {
+
+   
+            if ([string]::IsNullOrEmpty($HorizonCSRF))
+            {
+               write-host "You are not logged into Horizon"
+                break   
+               
+            }
+        
+            $headers = @{CSRFToken = $HorizonCSRF}
+        
+               
+            try {
+                
+                $sresult = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/UsageStatistics/GetLicensingCounters" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
+            }
+            
+            catch {
+              Write-Host "An error occurred when logging on $_"
+              Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+              Write-Log -Message "Finishing Script*************************************"
+             break 
+            }
+      
+    
+            $sresult | Format-list     
+          
+        
+         
+            
+          
+           
+              } 
 Function GetEvents {
 
    
@@ -243,11 +277,12 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "1: Press '1' to Login to Horizon"
-       Write-Host "2: Press '2' for a List of Sessions"
-       Write-Host "3: Press '3' for a List of Applications"
-       Write-Host "4: Press '4' for Recent Events"
-       Write-Host "Q: Press 'Q' to quit."
+       Write-Host "Press '1' to Login to Horizon"
+       Write-Host "Press '2' for a List of Sessions"
+       Write-Host "Press '3' for a List of Applications"
+       Write-Host "Press '4' for Recent Events"
+       Write-Host "Press '5' for Licensing Usage"
+       Write-Host "Press 'Q' to quit."
          }
 
 do
@@ -278,7 +313,11 @@ do
         GetEvents
      
    }
-
+   '5' {
+       
+    GetLicenseUsage
+ 
+}
 
     }
     pause
