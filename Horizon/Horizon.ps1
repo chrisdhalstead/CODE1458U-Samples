@@ -140,6 +140,72 @@ $sresult.Results | Format-table -AutoSize -Property @{Name = 'Username'; Express
  
     
       } 
+Function GetMachines {
+    
+        if ([string]::IsNullOrEmpty($HorizonCSRF))
+        {
+           write-host "You are not logged into Horizon"
+            break   
+           
+        }
+     
+        $headers = @{CSRFToken = $HorizonCSRF}
+    
+        $JSON = '{"queryEntityType":"MachineNamesView","sortDescending":false,"startingOffset":0,"filter":{"type":"Equals","memberName":"base.type","value":"MANAGED_VIRTUAL_MACHINE"}}'
+
+       
+        try {
+            
+            $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $JSON -ContentType "application/json" -WebSession $HorizonSession 
+        }
+        
+        catch {
+          Write-Host "An error occurred when logging on $_"
+          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+          Write-Log -Message "Finishing Script*************************************"
+         break 
+        }
+        
+      if ($sresult.results.Count -eq 0)
+       {
+        write-host "No Sessions"
+        break   
+           
+        }
+      
+    $query = $sresult.id
+         
+    $killsession
+    write-host "Results will be logged to: "$sLogPath"\"$sLogName
+    write-host "There are" $sresult.results.Count "desktops"
+
+  $script:dtlookup = @{}
+
+  foreach ($item in $sresult.Results) {
+
+    $dtlookup.add($item.base.name,$item.id)
+  
+}
+    
+    $sresult.Results | Format-table -AutoSize -Property @{Name = 'Machine'; Expression = {$_.base.name}},@{Name = 'Pool'; Expression = {$_.base.desktopname}},@{Name = 'OS'; Expression = {$_.base.operatingsystem}}`
+    ,@{Name = 'Achitecture'; Expression = {$_.base.operatingsystemarchitecture}},@{Name = 'Agent Version'; Expression = {$_.base.agentversion}},@{Name = 'Status'; Expression = {$_.base.basicstate}}
+    #Clean Up
+      try {
+                
+              $killsession = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
+      
+        }
+        
+        catch {
+    
+          Write-Host "An error occurred when logging on $_"
+          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
+          Write-Log -Message "Finishing Script*************************************"
+         break 
+        }
+     
+        
+          } 
 Function GetApplications {
 
    
@@ -187,6 +253,89 @@ Function GetApplications {
       
        
           } 
+
+
+function DTActions{
+
+  {
+    param (
+          [string]$Title = 'VMware Horizon Desktop Actions'
+          )
+       Clear-Host
+       Write-Host "================ $Title ================"
+             
+       Write-Host "Press '1' to Reboot a Machine"
+       Write-Host "Press '2' for a List of Sessions"
+       Write-Host "Press '3' for a List of Applications"
+       Write-Host "Press '4' for a List of Machines"
+       Write-Host "Press '5' for Desktop Actions"
+       Write-Host "Press '6' for Recent Events"
+       Write-Host "Press '7' for Licensing Usage"
+       Write-Host "Press 'Q' to quit."
+         }
+
+do
+ {
+    Show-Menu
+    $selection = Read-Host "Please make a selection"
+    switch ($selection)
+    {
+    
+    '1' {  
+
+        RebootMachine
+    } 
+    
+    '2' {
+   
+         GetSessions
+
+    }
+    
+    '3' {
+       
+         GetApplications
+      
+    }
+
+    '4' {
+       
+     GetMachines
+   
+ }
+
+ '5' {
+       
+  DTActions
+
+}
+'6' {
+
+GetEvents
+
+}
+
+ '7' {
+       
+GetLicenseUsage
+     
+   }
+  
+    }
+    pause
+ }
+ 
+ until ($selection -eq 'q')
+
+
+
+
+
+
+}
+
+
+
 
 
 Function GetLicenseUsage {
@@ -283,8 +432,9 @@ function Show-Menu
        Write-Host "Press '1' to Login to Horizon"
        Write-Host "Press '2' for a List of Sessions"
        Write-Host "Press '3' for a List of Applications"
-       Write-Host "Press '4' for Recent Events"
-       Write-Host "Press '5' for Licensing Usage"
+       Write-Host "Press '4' for a List of Machines"
+       Write-Host "Press '5' for Recent Events"
+       Write-Host "Press '6' for Licensing Usage"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -311,12 +461,18 @@ do
          GetApplications
       
     }
+
     '4' {
+       
+     GetMachines
+   
+ }
+    '5' {
        
         GetEvents
      
    }
-   '5' {
+   '6' {
        
     GetLicenseUsage
  
