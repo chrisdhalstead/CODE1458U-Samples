@@ -212,10 +212,11 @@ Function GetLicenseUsage {
              break 
             }
       
-    
-            $sresult | Format-list     
-          
-        
+            write-host "Current Usage:"
+            $sresult.currentUsage | Format-list 
+            write-Host "Highest Usage:"
+            $sresult.highestUsage | Format-list 
+                
          
             
           
@@ -272,7 +273,7 @@ Function GetEvents {
 function Show-Menu
   {
     param (
-          [string]$Title = 'Horizon API Menu'
+          [string]$Title = 'VMware Horizon API Menu'
           )
        Clear-Host
        Write-Host "================ $Title ================"
@@ -322,6 +323,7 @@ do
     }
     pause
  }
+ 
  until ($selection -eq 'q')
 
 
