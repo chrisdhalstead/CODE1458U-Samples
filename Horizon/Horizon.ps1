@@ -1,23 +1,15 @@
 <#
 .SYNOPSIS
-  Script to update the size of VMware App Volumes Writable Volumes.  Can also be used to view sizes of volumes.
+Samples Scripts Using the VMware Horzon REST API
 	
-.INPUTS
-  Parameters Below
-
-.OUTPUTS
-  Log file stored in %temp%\expand-wv.log>
-
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  4/8/2019
+  Creation Date:  7/18/2019
   Purpose/Change: Initial script development
-  **This script and the App Volumes API is not supported by VMware**
-  New sizes won't be reflected until a user logs in and attaches the Writable Volume	
-  
+  **This script and the VMware Horizon REST API is not supported by VMware**
+ 
 #>
-
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 #Log File Info
@@ -30,7 +22,6 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
 Add-Content $sLogFile -Value $sLogTitle
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function Write-Log {
@@ -50,14 +41,15 @@ Function Write-Log {
 
 Function LogintoHorizon {
 
+#Capture Login Information
 $script:HorizonServer = Read-Host -Prompt 'Enter the Horizon Server Name'
 $Username = Read-Host -Prompt 'Enter the Username'
 $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
 $domain = read-host -Prompt 'Enter the Horizon Domain'
 
+#Convert Password for JSON
 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
 $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-
 $Credentials = '{"name":' + $username + ',"passwd":' + $UnsecurePassword +',"domain":' + $domain +'}' 
 
 try {
@@ -74,12 +66,10 @@ catch {
 
 write-host "Successfully Logged In"
 
-#write the returned oAuth2 token to a Global Variable
 $script:HorizonCSRF = $sresult.headers.CSRFToken
 $script:HorizonSession = $session
 
-
-  } 
+} 
 
 Function GetSessions {
     
@@ -100,9 +90,7 @@ Function GetSessions {
     }
     
     catch {
-      Write-Host "An error occurred when logging on $_"
-      Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-      Write-Log -Message "Finishing Script*************************************"
+      Write-Host "An error occurred when getting sessions $_"
      break 
     }
     
@@ -140,6 +128,49 @@ $sresult.Results | Format-table -AutoSize -Property @{Name = 'Username'; Express
  
     
       } 
+
+      
+Function RebootDT {
+    
+        if ([string]::IsNullOrEmpty($HorizonCSRF))
+        {
+           write-host "You are not logged into Horizon"
+            break   
+           
+        }
+
+$thedesktop = Read-Host -Prompt 'Enter the Desktop Name'
+
+$dtencoded = $dtlookup[$thedesktop]
+
+    Write-host "Would you like to reboot $thedesktop? (Default is No)" -ForegroundColor Yellow 
+    $Readhost = Read-Host " ( y / n ) " 
+    Switch ($ReadHost) 
+     { 
+       Y {Write-host "Rebooting $thedesktop. This may take a few minutes.";Continue} 
+       N {Write-Host "Doing Nothing"; break} 
+       Default {Write-Host "Default, Do Nothing"; break} 
+     } 
+     
+    $headers = @{CSRFToken = $HorizonCSRF}
+    $sresult
+
+    $JSON = '["' + $dtencoded +  '"]'        
+       
+      try {
+            
+            $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/Machine/RestartMachines" -Headers $headers -body $JSON -ContentType "application/json" -WebSession $HorizonSession 
+        }
+        
+        catch {
+          Write-Host "An error occurred when logging on $_"
+         break 
+        }
+        
+               
+}     
+ 
+
 Function GetMachines {
     
         if ([string]::IsNullOrEmpty($HorizonCSRF))
@@ -160,10 +191,8 @@ Function GetMachines {
         }
         
         catch {
-          Write-Host "An error occurred when logging on $_"
-          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-          Write-Log -Message "Finishing Script*************************************"
-         break 
+          Write-Host "An error occurred when getting sessions $_"
+          break 
         }
         
       if ($sresult.results.Count -eq 0)
@@ -198,9 +227,8 @@ Function GetMachines {
         
         catch {
     
-          Write-Host "An error occurred when logging on $_"
-          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-          Write-Log -Message "Finishing Script*************************************"
+          Write-Host "An error occurred when deleting query $_"
+      
          break 
         }
      
@@ -245,101 +273,13 @@ Function GetApplications {
         
         catch {
           Write-Host "An error occurred when logging on $_"
-          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-          Write-Log -Message "Finishing Script*************************************"
-         break 
+                 break 
         }
-     
-      
+           
        
           } 
 
-
-function DTActions{
-
-  {
-    param (
-          [string]$Title = 'VMware Horizon Desktop Actions'
-          )
-       Clear-Host
-       Write-Host "================ $Title ================"
-             
-       Write-Host "Press '1' to Reboot a Machine"
-       Write-Host "Press '2' for a List of Sessions"
-       Write-Host "Press '3' for a List of Applications"
-       Write-Host "Press '4' for a List of Machines"
-       Write-Host "Press '5' for Desktop Actions"
-       Write-Host "Press '6' for Recent Events"
-       Write-Host "Press '7' for Licensing Usage"
-       Write-Host "Press 'Q' to quit."
-         }
-
-do
- {
-    Show-Menu
-    $selection = Read-Host "Please make a selection"
-    switch ($selection)
-    {
-    
-    '1' {  
-
-        RebootMachine
-    } 
-    
-    '2' {
-   
-         GetSessions
-
-    }
-    
-    '3' {
-       
-         GetApplications
-      
-    }
-
-    '4' {
-       
-     GetMachines
-   
- }
-
- '5' {
-       
-  DTActions
-
-}
-'6' {
-
-GetEvents
-
-}
-
- '7' {
-       
-GetLicenseUsage
-     
-   }
-  
-    }
-    pause
- }
- 
- until ($selection -eq 'q')
-
-
-
-
-
-
-}
-
-
-
-
-
 Function GetLicenseUsage {
-
    
             if ([string]::IsNullOrEmpty($HorizonCSRF))
             {
@@ -368,8 +308,6 @@ Function GetLicenseUsage {
             write-Host "Highest Usage:"
             $sresult.highestUsage | Format-list 
                 
-         
-            
           
            
               } 
@@ -433,8 +371,9 @@ function Show-Menu
        Write-Host "Press '2' for a List of Sessions"
        Write-Host "Press '3' for a List of Applications"
        Write-Host "Press '4' for a List of Machines"
-       Write-Host "Press '5' for Recent Events"
-       Write-Host "Press '6' for Licensing Usage"
+       Write-Host "Press '5' to Reboot a Desktop"
+       Write-Host "Press '6' for Recent Events"
+       Write-Host "Press '7' for Licensing Usage"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -467,12 +406,20 @@ do
      GetMachines
    
  }
-    '5' {
+
+
+ '5' {
+       
+  RebootDT
+
+}
+
+'6' {
        
         GetEvents
      
    }
-   '6' {
+   '7' {
        
     GetLicenseUsage
  
