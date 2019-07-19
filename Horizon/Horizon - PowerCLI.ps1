@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Samples Scripts Using the VMware Horzon REST API
+Samples Scripts Using the VMware Horzon API via PowerCLI
 	
 .NOTES
   Version:        1.0
@@ -61,15 +61,11 @@ $script:hvServices = $hvServer.ExtensionData
 
 catch {
   Write-Host "An error occurred when logging on $_"
-  Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-  Write-Log -Message "Finishing Script*************************************"
   break
 }
 
 write-host "Successfully Logged In"
 
-$script:HorizonCSRF = $sresult.headers.CSRFToken
-$script:HorizonSession = $session
 
 } 
 
@@ -92,9 +88,7 @@ Function GetSessions {
       $qSrv = New-Object "Vmware.Hv.QueryServiceService"
       
       $sresult = $qSRv.QueryService_Query($hvServices,$query)
-      
-   
-         
+               
 
     }
 
@@ -166,22 +160,29 @@ $dtencoded = $dtlookup[$thedesktop]
 
 Function GetMachines {
     
-        if ([string]::IsNullOrEmpty($HorizonCSRF))
+        if ([string]::IsNullOrEmpty($hvserver))
         {
            write-host "You are not logged into Horizon"
             break   
            
         }
-     
-        $headers = @{CSRFToken = $HorizonCSRF}
-    
-        $JSON = '{"queryEntityType":"MachineNamesView","sortDescending":false,"startingOffset":0,"filter":{"type":"Equals","memberName":"base.type","value":"MANAGED_VIRTUAL_MACHINE"}}'
-
-       
+            
         try {
             
-            $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $JSON -ContentType "application/json" -WebSession $HorizonSession 
-        }
+         
+          $query = New-Object "Vmware.Hv.QueryDefinition"
+
+          $query.queryEntityType = 'MachineNamesView'
+      
+          $qSrv = New-Object "Vmware.Hv.QueryServiceService"
+      
+          $sresult = $qSRv.QueryService_Query($hvServices,$query)
+
+          $qsrv.QueryService_Deleteall($hvservices)
+               
+          
+
+          }
         
         catch {
           Write-Host "An error occurred when getting sessions $_"
@@ -211,64 +212,43 @@ Function GetMachines {
     
     $sresult.Results | Format-table -AutoSize -Property @{Name = 'Machine'; Expression = {$_.base.name}},@{Name = 'Pool'; Expression = {$_.base.desktopname}},@{Name = 'OS'; Expression = {$_.base.operatingsystem}}`
     ,@{Name = 'Achitecture'; Expression = {$_.base.operatingsystemarchitecture}},@{Name = 'Agent Version'; Expression = {$_.base.agentversion}},@{Name = 'Status'; Expression = {$_.base.basicstate}}
-    #Clean Up
-      try {
-                
-              $killsession = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
-      
-        }
-        
-        catch {
-    
-          Write-Host "An error occurred when deleting query $_"
-      
-         break 
-        }
-     
-        
+         
           } 
 Function GetApplications {
 
    
-        if ([string]::IsNullOrEmpty($HorizonCSRF))
+        if ([string]::IsNullOrEmpty($hvserver))
         {
            write-host "You are not logged into Horizon"
             break   
            
         }
     
-        $headers = @{CSRFToken = $HorizonCSRF}
-    
-        $SESSIONJSON = '{"queryEntityType":"ApplicationInfo","sortDescending":false,"startingOffset":0}'
-       
+     
+           
         try {
             
-            $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
-        }
+          $query = New-Object "Vmware.Hv.QueryDefinition"
+
+          $query.queryEntityType = 'ApplicationInfo'
+      
+          $qSrv = New-Object "Vmware.Hv.QueryServiceService"
+      
+          $sresult = $qSRv.QueryService_Query($hvServices,$query)
+       
+       
+          }
         
         catch {
           Write-Host "An error occurred when logging on $_"
-          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-          Write-Log -Message "Finishing Script*************************************"
-         break 
+          break 
         }
         
-        $query = $sresult.id
         write-host "There are" $sresult.results.Count "total applications"
 
         $sresult.Results.data | Format-Table -autosize       
-      
-    
-        try {
-            
-            $sresult = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
-        }
-        
-        catch {
-          Write-Host "An error occurred when logging on $_"
-                 break 
-        }
-           
+         
+                 
        
           } 
 
