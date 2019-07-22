@@ -47,7 +47,7 @@ $Username = Read-Host -Prompt 'Enter the Username'
 $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
 $domain = read-host -Prompt 'Enter the Horizon Domain'
 
-#Convert Password for JSON
+#Convert Password
 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
 $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
@@ -65,7 +65,6 @@ catch {
 }
 
 write-host "Successfully Logged In"
-
 
 } 
 
@@ -88,10 +87,8 @@ Function GetSessions {
       $qSrv = New-Object "Vmware.Hv.QueryServiceService"
       
       $sresult = $qSRv.QueryService_Query($hvServices,$query)
-               
-
+              
     }
-
     
     catch {
       Write-Host "An error occurred when getting sessions $_"
@@ -111,7 +108,6 @@ write-host "There are" $sresult.results.Count "total sessions"
 $sresult.Results | Format-table -AutoSize -Property @{Name = 'Username'; Expression = {$_.namesdata.username}},@{Name = 'Desktop Name'; Expression = {$_.namesdata.desktopname}},@{Name = 'Machine or RDS Server'; Expression = {$_.namesdata.machineorrdsservername}}`
 ,@{Name = 'Client Name'; Expression = {$_.namesdata.clientname}},@{Name = 'Client Type'; Expression = {$_.namesdata.clienttype}},@{Name = 'Client Version'; Expression = {$_.namesdata.clientversion}},@{Name = 'Client IP'; Expression = {$_.namesdata.clientaddress}}`
 ,@{Name = 'Session Type'; Expression = {$_.sessiondata.sessiontype}},@{Name = 'Session State'; Expression = {$_.sessiondata.sessionstate}},@{Name = 'Location'; Expression = {$_.namesdata.securitygatewaylocation}}
-
  
     
       } 
@@ -119,12 +115,14 @@ $sresult.Results | Format-table -AutoSize -Property @{Name = 'Username'; Express
       
 Function RebootDT {
     
-        if ([string]::IsNullOrEmpty($HorizonCSRF))
-        {
-           write-host "You are not logged into Horizon"
-            break   
-           
-        }
+if ([string]::IsNullOrEmpty($hvserver))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+
+
+GetMachines   
 
 $thedesktop = Read-Host -Prompt 'Enter the Desktop Name'
 
@@ -139,15 +137,12 @@ $dtencoded = $dtlookup[$thedesktop]
        Default {Write-Host "Default, Do Nothing"; break} 
      } 
      
-    $headers = @{CSRFToken = $HorizonCSRF}
-    $sresult
-
-    $JSON = '["' + $dtencoded +  '"]'        
        
       try {
+ 
+            $hvServices.machine.Machine_Restart($dtencoded)
             
-            $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/Machine/RestartMachines" -Headers $headers -body $JSON -ContentType "application/json" -WebSession $HorizonSession 
-        }
+          }
         
         catch {
           Write-Host "An error occurred when logging on $_"
@@ -157,6 +152,62 @@ $dtencoded = $dtlookup[$thedesktop]
                
 }     
  
+
+Function GetDtPools {
+    
+  if ([string]::IsNullOrEmpty($hvserver))
+  {
+     write-host "You are not logged into Horizon"
+      break   
+     
+  }
+      
+  try {
+   
+    #Run PowerCLI Statements
+   
+    $query = New-Object "Vmware.Hv.QueryDefinition"
+
+    $query.queryEntityType = 'MachineNamesView'
+
+    $qSrv = New-Object "Vmware.Hv.QueryServiceService"
+
+    $sresult = $qSRv.QueryService_Query($hvServices,$query)
+
+    $qsrv.QueryService_Deleteall($hvservices)
+         
+    }
+  
+  catch {
+    Write-Host "An error occurred when getting sessions $_"
+    break 
+  }
+  
+if ($sresult.results.Count -eq 0)
+ {
+  write-host "No Sessions"
+  break   
+     
+  }
+
+$query = $sresult.id
+   
+$killsession
+write-host "Results will be logged to: "$sLogPath"\"$sLogName
+write-host "There are" $sresult.results.Count "desktops"
+
+$script:dtlookup = @{}
+
+foreach ($item in $sresult.Results) {
+
+$dtlookup.add($item.base.name,$item.id)
+
+}
+
+$sresult.Results | Format-table -AutoSize -Property @{Name = 'Machine'; Expression = {$_.base.name}},@{Name = 'Pool'; Expression = {$_.base.desktopname}},@{Name = 'OS'; Expression = {$_.base.operatingsystem}}`
+,@{Name = 'Achitecture'; Expression = {$_.base.operatingsystemarchitecture}},@{Name = 'Agent Version'; Expression = {$_.base.agentversion}},@{Name = 'Status'; Expression = {$_.base.basicstate}}
+   
+    } 
 
 Function GetMachines {
     
@@ -168,7 +219,8 @@ Function GetMachines {
         }
             
         try {
-            
+         
+          #Run PowerCLI Statements
          
           $query = New-Object "Vmware.Hv.QueryDefinition"
 
@@ -180,8 +232,6 @@ Function GetMachines {
 
           $qsrv.QueryService_Deleteall($hvservices)
                
-          
-
           }
         
         catch {
@@ -251,86 +301,6 @@ Function GetApplications {
                  
        
           } 
-
-Function GetLicenseUsage {
-   
-            if ([string]::IsNullOrEmpty($HorizonCSRF))
-            {
-               write-host "You are not logged into Horizon"
-                break   
-               
-            }
-        
-            $headers = @{CSRFToken = $HorizonCSRF}
-        
-               
-            try {
-                
-                $sresult = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/UsageStatistics/GetLicensingCounters" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
-            }
-            
-            catch {
-              Write-Host "An error occurred when logging on $_"
-              Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-              Write-Log -Message "Finishing Script*************************************"
-             break 
-            }
-      
-            write-host "Current Usage:"
-            $sresult.currentUsage | Format-list 
-            write-Host "Highest Usage:"
-            $sresult.highestUsage | Format-list 
-                
-          
-           
-              } 
-Function GetEvents {
-
-   
-  if ([string]::IsNullOrEmpty($HorizonCSRF))
-        {
-            write-host "You are not logged into Horizon"
-            break   
-               
-        }
-        
-  $headers = @{CSRFToken = $HorizonCSRF}
-        
-  $SESSIONJSON = '{"queryEntityType":"EventSummaryView","sortDescending":true,"startingOffset":0,"sortBy":"data.time","limit":50,"maxPageSize":50}'
-           
-            try {
-                
-                $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/create" -Headers $headers -body $SESSIONJSON -ContentType "application/json" -WebSession $HorizonSession
-            }
-            
-            catch {
-              Write-Host "An error occurred when logging on $_"
-              Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-              Write-Log -Message "Finishing Script*************************************"
-             break 
-            }
-            
-            $query = $sresult.id
-            write-host "There are" $sresult.results.Count "events shown"
-    
-            $sresult.Results.data | Format-list -Property EventType,severity,message
-          
-        
-            try {
-                
-                $sresult = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/view-vlsi/rest/v1/queryservice/delete?id=$query" -Headers $headers -ContentType "application/json" -WebSession $HorizonSession
-            }
-            
-            catch {
-              Write-Host "An error occurred when logging on $_"
-              Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-              Write-Log -Message "Finishing Script*************************************"
-             break 
-            }
-         
-          
-           
-              } 
  
 function Show-Menu
   {
@@ -345,8 +315,8 @@ function Show-Menu
        Write-Host "Press '3' for a List of Applications"
        Write-Host "Press '4' for a List of Machines"
        Write-Host "Press '5' to Reboot a Desktop"
-       Write-Host "Press '6' for Recent Events"
-       Write-Host "Press '7' for Licensing Usage"
+       Write-Host "Press '6' for a List of Desktop Pools"
+       Write-Host "Press '7' to Reset a Desktop Pool"
        Write-Host "Press 'Q' to quit."
          }
 

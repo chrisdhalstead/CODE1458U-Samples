@@ -7,7 +7,7 @@ Samples Scripts Using the VMware Horzon REST API
   Author:         Chris Halstead - chalstead@vmware.com
   Creation Date:  7/18/2019
   Purpose/Change: Initial script development
-  **This script and the VMware Horizon REST API is not supported by VMware**
+  **This script and the VMware Horizon REST API are not supported by VMware**
  
 #>
 
