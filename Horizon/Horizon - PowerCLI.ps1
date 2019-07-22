@@ -173,15 +173,15 @@ Function RefreshPool {
   
   GetDtPools   
   
-  $thedesktop = Read-Host -Prompt 'Enter the Pool Name'
+  $thepool = Read-Host -Prompt 'Enter the Pool Name'
   
   $dtencoded = $dtlookup[$thedesktop]
   
-      Write-host "Would you like to reboot $thedesktop? (Default is No)" -ForegroundColor Yellow 
+      Write-host "Would you like to refresh $thepool? (Default is No)" -ForegroundColor Yellow 
       $Readhost = Read-Host " ( y / n ) " 
       Switch ($ReadHost) 
        { 
-         Y {Write-host "Rebooting $thedesktop. This may take a few minutes.";Continue} 
+         Y {Write-host "Refreshing $thepool. This will take a few minutes.";Continue} 
          N {Write-Host "Doing Nothing"; break} 
          Default {Write-Host "Default, Do Nothing"; break} 
        } 
@@ -189,7 +189,7 @@ Function RefreshPool {
          
         try {
    
-              $hvServices.machine.Machine_Restart($dtencoded)
+              #$hvServices.Desktop.p($dtencoded)
               
             }
           
