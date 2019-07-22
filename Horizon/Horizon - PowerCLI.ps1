@@ -126,6 +126,17 @@ GetMachines
 
 $thedesktop = Read-Host -Prompt 'Enter the Desktop Name'
 
+if ($dtlookup.containskey($thedesktop) ) {
+  
+}
+
+else {
+  
+write-host "Machine not found."
+break
+
+}
+
 $dtencoded = $dtlookup[$thedesktop]
 
     Write-host "Would you like to reboot $thedesktop? (Default is No)" -ForegroundColor Yellow 
@@ -136,8 +147,7 @@ $dtencoded = $dtlookup[$thedesktop]
        N {Write-Host "Doing Nothing"; break} 
        Default {Write-Host "Default, Do Nothing"; break} 
      } 
-     
-       
+            
       try {
  
             $hvServices.machine.Machine_Restart($dtencoded)
@@ -152,6 +162,44 @@ $dtencoded = $dtlookup[$thedesktop]
                
 }     
  
+Function RefreshPool {
+    
+  if ([string]::IsNullOrEmpty($hvserver))
+        {
+          write-host "You are not logged into Horizon"
+          break   
+        }
+  
+  
+  GetDtPools   
+  
+  $thedesktop = Read-Host -Prompt 'Enter the Pool Name'
+  
+  $dtencoded = $dtlookup[$thedesktop]
+  
+      Write-host "Would you like to reboot $thedesktop? (Default is No)" -ForegroundColor Yellow 
+      $Readhost = Read-Host " ( y / n ) " 
+      Switch ($ReadHost) 
+       { 
+         Y {Write-host "Rebooting $thedesktop. This may take a few minutes.";Continue} 
+         N {Write-Host "Doing Nothing"; break} 
+         Default {Write-Host "Default, Do Nothing"; break} 
+       } 
+       
+         
+        try {
+   
+              $hvServices.machine.Machine_Restart($dtencoded)
+              
+            }
+          
+          catch {
+            Write-Host "An error occurred when logging on $_"
+           break 
+          }
+          
+                 
+  } 
 
 Function GetDtPools {
     
@@ -168,7 +216,7 @@ Function GetDtPools {
    
     $query = New-Object "Vmware.Hv.QueryDefinition"
 
-    $query.queryEntityType = 'MachineNamesView'
+    $query.queryEntityType = 'DesktopSummaryView'
 
     $qSrv = New-Object "Vmware.Hv.QueryServiceService"
 
@@ -189,25 +237,25 @@ if ($sresult.results.Count -eq 0)
   break   
      
   }
-
-$query = $sresult.id
    
-$killsession
-write-host "Results will be logged to: "$sLogPath"\"$sLogName
-write-host "There are" $sresult.results.Count "desktops"
+write-host "There are" $sresult.results.Count "pools"
 
-$script:dtlookup = @{}
+$script:dtpool = @{}
 
 foreach ($item in $sresult.Results) {
 
-$dtlookup.add($item.base.name,$item.id)
+    $dtpool.add($item.DesktopSummaryData.name,$item.id)
 
 }
 
-$sresult.Results | Format-table -AutoSize -Property @{Name = 'Machine'; Expression = {$_.base.name}},@{Name = 'Pool'; Expression = {$_.base.desktopname}},@{Name = 'OS'; Expression = {$_.base.operatingsystem}}`
-,@{Name = 'Achitecture'; Expression = {$_.base.operatingsystemarchitecture}},@{Name = 'Agent Version'; Expression = {$_.base.agentversion}},@{Name = 'Status'; Expression = {$_.base.basicstate}}
-   
-    } 
+$sresult.Results | Format-table -AutoSize -Property @{Name = 'Pool Name'; Expression = {$_.DesktopSummaryData.name}},@{Name = 'Enabled'; Expression = {$_.DesktopSummaryData.enabled}}`
+,@{Name = 'Type'; Expression = {$_.DesktopSummaryData.type}},@{Name = 'Source'; Expression = {$_.DesktopSummaryData.source}}`
+,@{Name = 'User Assignment'; Expression = {$_.DesktopSummaryData.userassignment}},@{Name = 'Machines'; Expression = {$_.DesktopSummaryData.nummachines}}`
+,@{Name = 'Sessions'; Expression = {$_.DesktopSummaryData.numsessions}},@{Name = 'Deleting'; Expression = {$_.DesktopSummaryData.deleting}} 
+
+
+} 
+
 
 Function GetMachines {
     
@@ -359,7 +407,7 @@ do
 
 '6' {
        
-        GetEvents
+        GetDtPools
      
    }
    '7' {
