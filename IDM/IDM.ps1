@@ -108,7 +108,7 @@ do {
       $istartat += $scimusers.itemsPerPage
       
       $scimusers.Resources | Format-table -AutoSize -Property @{Name = 'Username'; Expression = {$_.username}},@{Name = 'First Name'; Expression = {$_.name.givenname}},@{Name = 'Last Name'; Expression = {$_.name.familyname}}`
-      ,@{Name = 'E-Mail'; Expression = {$_.emails.value}},@{Name = 'Active'; Expression = {$_.active}}
+      ,@{Name = 'E-Mail'; Expression = {$_.emails.value}},@{Name = 'Active'; Expression = {$_.active}},@{Name = 'ID'; Expression = {$_.id}}
 
 
     } until ($allusers -eq $stotal)
