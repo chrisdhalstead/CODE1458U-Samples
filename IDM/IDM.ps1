@@ -107,9 +107,11 @@ do {
       write-host "Found $allusers users (returning $istartat to $stotal)"
       $istartat += $scimusers.itemsPerPage
       
-      $scimusers.Resources | Format-Table -autosize -Property active,username,name,emails
-  
-} until ($allusers -eq $stotal)
+      $scimusers.Resources | Format-table -AutoSize -Property @{Name = 'Username'; Expression = {$_.username}},@{Name = 'First Name'; Expression = {$_.name.givenname}},@{Name = 'Last Name'; Expression = {$_.name.familyname}}`
+      ,@{Name = 'E-Mail'; Expression = {$_.emails.value}},@{Name = 'Active'; Expression = {$_.active}}
+
+
+    } until ($allusers -eq $stotal)
 
            
           } 

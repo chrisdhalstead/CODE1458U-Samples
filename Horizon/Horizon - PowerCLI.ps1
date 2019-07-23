@@ -151,9 +151,9 @@ $dtencoded = $dtlookup[$thedesktop]
       try {
  
                    
-            #$hvServices.machine.Machine_Reset($dtencoded)
+            $hvServices.Machine.Machine_Reset($dtencoded)
 
-            $hvServer.Desktop_Refresh($dtencoded)
+            #$hvServer.Desktop_Refresh($dtencoded)
             
           }
         
