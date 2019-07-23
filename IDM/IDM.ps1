@@ -202,6 +202,54 @@ $cats.items | Format-table -AutoSize -Property ID,Name
                                                       
 }   
 
+Function SendMessage {
+ 
+  $bearerAuthValue = "Bearer $IDMToken"
+  $headers = @{Authorization = $bearerAuthValue}  
+
+  $usertoalert = Read-Host -Prompt 'Enter the User to Notify' 
+  $title = Read-Host -Prompt 'Enter the Title' 
+  $description = Read-Host -Prompt 'Enter the Message' 
+                        
+    try {
+               
+    $user = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?filter=UserName%20eq%20""$usertoalert""" -Headers $headers
+              
+        }
+                                        
+    catch {
+          Write-Host "An error occurred when searching for user $_"
+          break 
+          }
+
+if ($user.totalresults -eq 0) 
+{
+  Write-Host "No user found"
+  break
+}
+                        
+$theuser = $user.resources.id 
+
+try {
+            
+  $JSONMessage = '{"header": {"title": "' + $title + '"},"body": {"description": "' + $description +'"}}'
+
+  $message = Invoke-RestMethod -Method Post -Uri "https://$idmserver/ws1notifications/api/v1/users/$theuser/notifications" -Headers $headers -Body $JSONMessage -ContentType "application/json"            
+      
+}
+      
+                              
+  catch {
+        Write-Host "An error occurred when sending message $_"
+        break 
+        }
+           
+
+$message.created_at | Format-Table
+
+                                                      
+}  
+
 Function New_Category {
 
   Write-Host "Getting health of: $idmserver"
@@ -297,6 +345,7 @@ function Show-Menu
        Write-Host "Press '5' for a list of the Categories"
        Write-Host "Press '6' to add a new Category"
        Write-Host "Press '7' for IDM Service Health"
+       Write-Host "Press '8' to send message"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -351,6 +400,12 @@ GetCategories
   ServiceHealth
     
   }
+
+  '8' {
+       
+    SendMessage
+      
+    }
 
     }
     pause
