@@ -191,7 +191,7 @@ Function RefreshPool {
          
         try {
    
-              #$hvServices.Desktop.p($dtencoded)
+              $hvServices.Desktop.p($dtencoded)
               
             }
           
@@ -314,7 +314,7 @@ Function GetMachines {
     ,@{Name = 'Achitecture'; Expression = {$_.base.operatingsystemarchitecture}},@{Name = 'Agent Version'; Expression = {$_.base.agentversion}},@{Name = 'Status'; Expression = {$_.base.basicstate}}
          
           } 
-Function GetApplications {
+Function GetCSInfo {
 
    
         if ([string]::IsNullOrEmpty($hvserver))
@@ -324,18 +324,12 @@ Function GetApplications {
            
         }
     
-     
-           
+                
         try {
             
-          $query = New-Object "Vmware.Hv.QueryDefinition"
-
-          $query.queryEntityType = 'ApplicationInfo'
-      
-          $qSrv = New-Object "Vmware.Hv.QueryServiceService"
-      
-          $sresult = $qSRv.QueryService_Query($hvServices,$query)
-       
+             
+          $cs = $hvservices.ConnectionServerHealth.ConnectionServerHealth_List()
+    
        
           }
         
@@ -344,14 +338,81 @@ Function GetApplications {
           break 
         }
         
-        write-host "There are" $sresult.results.Count "total applications"
-
-        $sresult.Results.data | Format-Table -autosize       
-         
-                 
+            $cs | Format-Table -AutoSize -Property @{Name = 'Connection Server'; Expression = {$_.Name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Version'; Expression = {$_.version}}`
+            ,@{Name = 'Certificate Health'; Expression = {$_.certificatehealth.valid}}     
        
           } 
+         
+         
+          Function GetUsage {
+
+   
+            if ([string]::IsNullOrEmpty($hvserver))
+            {
+               write-host "You are not logged into Horizon"
+                break   
+               
+            }
+        
+                    
+            try {
+                
+                 
+              $usage = $hvservices.ConnectionServerHealth.ConnectionServerHealth_List()
+        
+           
+              }
+            
+            catch {
+              Write-Host "An error occurred when logging on $_"
+              break 
+            }
+            
+                $usage | Format-List -Property @{Name = 'Connection Server'; Expression = {$_.Name}},@{Name = 'Connections'; Expression = {$_.connectiondata.numconnections}},@{Name = 'Max Connections'; Expression = {$_.connectiondata.numconnectionshigh}}`
+                ,@{Name = 'Composer Connections'; Expression = {$_.connectiondata.numviewcomposerconnections}},@{Name = ' Max Composer Connections'; Expression = {$_.connectiondata.numviewcomposerconnectionshigh}},@{Name = 'Tunneled Connections'; Expression = {$_.connectiondata.numtunneledsessions}}`
+                
+           
+              } 
  
+Function GetApplications {
+
+   
+            if ([string]::IsNullOrEmpty($hvserver))
+            {
+               write-host "You are not logged into Horizon"
+                break   
+               
+            }
+        
+         
+               
+            try {
+                
+              $query = New-Object "Vmware.Hv.QueryDefinition"
+    
+              $query.queryEntityType = 'ApplicationInfo'
+          
+              $qSrv = New-Object "Vmware.Hv.QueryServiceService"
+          
+              $sresult = $qSRv.QueryService_Query($hvServices,$query)
+           
+           
+              }
+            
+            catch {
+              Write-Host "An error occurred when logging on $_"
+              break 
+            }
+            
+            write-host "There are" $sresult.results.Count "total applications"
+    
+            $sresult.Results.data | Format-Table -autosize       
+             
+                     
+           
+              } 
+     
+
 function Show-Menu
   {
     param (
@@ -366,7 +427,8 @@ function Show-Menu
        Write-Host "Press '4' for a List of Machines"
        Write-Host "Press '5' to Reboot a Desktop"
        Write-Host "Press '6' for a List of Desktop Pools"
-       Write-Host "Press '7' to Reset a Desktop Pool"
+       Write-Host "Press '7' for Connection Server Info"
+       Write-Host "Press '8' for Usage Info"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -414,8 +476,13 @@ do
    }
    '7' {
        
-    GetLicenseUsage
+    GetCSInfo
  
+}
+'8' {
+       
+  GetUsage
+
 }
 
     }
