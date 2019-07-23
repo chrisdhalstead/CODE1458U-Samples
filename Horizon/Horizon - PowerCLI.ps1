@@ -153,7 +153,7 @@ $dtencoded = $dtlookup[$thedesktop]
                    
             #$hvServices.machine.Machine_Reset($dtencoded)
 
-            $hvServer.Desktop_refresh($dtencoded)
+            $hvServer.Desktop_Refresh($dtencoded)
             
           }
         
@@ -164,7 +164,6 @@ $dtencoded = $dtlookup[$thedesktop]
         
                
 }     
- 
 Function RefreshPool {
     
   if ([string]::IsNullOrEmpty($hvserver))
