@@ -369,7 +369,7 @@ Function GetCSInfo {
             }
             
                 $usage | Format-List -Property @{Name = 'Connection Server'; Expression = {$_.Name}},@{Name = 'Connections'; Expression = {$_.connectiondata.numconnections}},@{Name = 'Max Connections'; Expression = {$_.connectiondata.numconnectionshigh}}`
-                ,@{Name = 'Composer Connections'; Expression = {$_.connectiondata.numviewcomposerconnections}},@{Name = ' Max Composer Connections'; Expression = {$_.connectiondata.numviewcomposerconnectionshigh}},@{Name = 'Tunneled Connections'; Expression = {$_.connectiondata.numtunneledsessions}}`
+                ,@{Name = 'Composer Connections'; Expression = {$_.connectiondata.numviewcomposerconnections}},@{Name = 'Max Composer Connections'; Expression = {$_.connectiondata.numviewcomposerconnectionshigh}},@{Name = 'Tunneled Connections'; Expression = {$_.connectiondata.numtunneledsessions}}`
                 
            
               } 
