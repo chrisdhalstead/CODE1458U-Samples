@@ -208,8 +208,6 @@ Function SendMessage {
   $headers = @{Authorization = $bearerAuthValue}  
 
   $usertoalert = Read-Host -Prompt 'Enter the User to Notify' 
-  $title = Read-Host -Prompt 'Enter the Title' 
-  $description = Read-Host -Prompt 'Enter the Message' 
                         
     try {
                
@@ -224,9 +222,13 @@ Function SendMessage {
 
 if ($user.totalresults -eq 0) 
 {
-  Write-Host "No user found"
+  Write-Host "$usertoalert not found"
   break
 }
+
+$title = Read-Host -Prompt 'Enter the Title' 
+$description = Read-Host -Prompt 'Enter the Message' 
+
                         
 $theuser = $user.resources.id 
 
