@@ -202,10 +202,11 @@ $cats.items | Format-table -AutoSize -Property ID,Name
                                                       
 }   
 
-Function SendMessage {
+Function SendNotification {
  
   $bearerAuthValue = "Bearer $IDMToken"
-  $headers = @{Authorization = $bearerAuthValue}  
+  $headers = @{Authorization = $bearerAuthValue}
+  $guid = New-GUID 
 
   $usertoalert = Read-Host -Prompt 'Enter the User to Notify' 
                         
@@ -233,14 +234,13 @@ $description = Read-Host -Prompt 'Enter the Message'
 $theuser = $user.resources.id 
 
 try {
-            
-  $JSONMessage = '{"header": {"title": "' + $title + '"},"body": {"description": "' + $description +'"}}'
+  #Sends a high priority message       
+  $JSONMessage = '{"header": {"title": "' + $title + '"},"importance" : 1,"body": {"description": "' + $description +'"},"actions":[{"id":"' + $guid +'","label":"Notification API Docs","completed_label": "Page Visited","type":"POST", "primary": true,"allow_repeated": false,"url":{"href":"https://code.vmware.com/apis/402/workspace-one-notifications"},"action_key":"OPEN_IN"}]}'
 
   $message = Invoke-RestMethod -Method Post -Uri "https://$idmserver/ws1notifications/api/v1/users/$theuser/notifications" -Headers $headers -Body $JSONMessage -ContentType "application/json"            
       
 }
-      
-                              
+                                   
   catch {
         Write-Host "An error occurred when sending message $_"
         break 
@@ -248,10 +248,8 @@ try {
            
 
 $message.created_at | Format-Table
-
                                                       
 }  
-
 Function New_Category {
 
   Write-Host "Getting health of: $idmserver"
@@ -347,7 +345,7 @@ function Show-Menu
        Write-Host "Press '5' for a list of the Categories"
        Write-Host "Press '6' to add a new Category"
        Write-Host "Press '7' for IDM Service Health"
-       Write-Host "Press '8' to send message"
+       Write-Host "Press '8' to Send a Notification to a User"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -405,7 +403,7 @@ GetCategories
 
   '8' {
        
-    SendMessage
+    SendNotification
       
     }
 
