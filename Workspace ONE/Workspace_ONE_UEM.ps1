@@ -93,7 +93,7 @@ foreach ($id in $sresult.devices.uuid) {
   try {
     
     $device = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/API/mdm/devices/$id" -ContentType "application/json" -Header $header
-    $device | format-list -Property @{Name = 'Username'; Expression = {$_.enrollmentinfo.username}},FriendlyName,@{Name = 'OS'; Expression = {$_.platforminfo.osversion}},DataEncrypted,@{Name = 'Enrollment Status'; Expression = {$_.enrollmentinfo.enrollmentstatus}}
+    $device | format-table -Property @{Name = 'Username'; Expression = {$_.enrollmentinfo.username}},FriendlyName,@{Name = 'OS'; Expression = {$_.platforminfo.osversion}},DataEncrypted,@{Name = 'Enrollment Status'; Expression = {$_.enrollmentinfo.enrollmentstatus}}
 
   }
   catch {
