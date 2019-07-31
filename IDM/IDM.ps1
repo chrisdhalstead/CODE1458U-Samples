@@ -84,11 +84,10 @@ Write-Host "Successfully Logged In"
        
     }
 
-
-     Write-Host "Getting IDM Users on: $idmserver"
-     $bearerAuthValue = "Bearer $IDMToken"
-     $headers = @{ Authorization = $bearerAuthValue }  
-     $allusers
+Write-Host "Getting IDM Users on: $idmserver"
+$bearerAuthValue = "Bearer $IDMToken"
+$headers = @{ Authorization = $bearerAuthValue }  
+$allusers
    
  
 $istartat = 1     
@@ -175,7 +174,7 @@ try {
              break 
             }
           
-            $apps.items | Format-table -AutoSize -Property Name,Description,CatalogItemType
+            $apps.items | Format-table -AutoSize -Property @{Name = 'E-Mail'; Expression = {$_.emails.value}}
                                         
             }          
 
