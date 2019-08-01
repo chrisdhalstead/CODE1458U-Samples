@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Script to update the size of VMware App Volumes Writable Volumes.  Can also be used to view sizes of volumes.
+IDM API Examples  
 
 .OUTPUTS
   Log file stored in %temp%\expand-wv.log>
@@ -8,7 +8,7 @@
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  4/8/2019
+  Creation Date:  8/1/2019
   Purpose/Change: Initial script development
   **This script and the App Volumes API is not supported by VMware**
   New sizes won't be reflected until a user logs in and attaches the Writable Volume	
@@ -44,12 +44,13 @@ Function Write-Log {
     }
 
 Function LogintoIDM {
-#Connect to IDM
 
+#Get data and save to variables
 $script:idmserver = Read-Host -Prompt 'Enter the IDM Server Name'
 $IDMclientID = Read-Host -Prompt 'Enter the oAuth2 Client ID'
 $IDMSharedSecret = Read-Host -Prompt 'Enter the Shared Secret' 
 
+#Base64 encode the client name and shared secret
 $pair = "${IDMclientID}:${IDMSharedSecret}"
 $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
 $base64 = [System.Convert]::ToBase64String($bytes)
