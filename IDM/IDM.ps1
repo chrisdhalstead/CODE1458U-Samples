@@ -29,6 +29,7 @@ $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
 $base64 = [System.Convert]::ToBase64String($bytes)
 $basicAuthValue = "Basic $base64"
 
+#Retrieve oAuth2 Token
 Write-Host "Getting Token From: $idmserver"
 $headers = @{ Authorization = $basicAuthValue }
 try {
@@ -42,51 +43,51 @@ catch {
   break 
 }
 
-#write the returned oAuth2 token to a Global Variable
+#Save the returned oAuth2 token to a Global Variable
 $script:IDMToken = $sresult.access_token
 
 Write-Host "Successfully Logged In"
 
   } 
+Function GetUsers {
 
-  Function GetUsers {
-
-    if ([string]::IsNullOrEmpty($IDMToken))
+#Check if the user is logged in
+if ([string]::IsNullOrEmpty($IDMToken))
     {
-       write-host "You are not logged into IDM"
-        break   
-       
+      write-host "You are not logged into IDM"
+      break   
     }
 
 Write-Host "Getting IDM Users on: $idmserver"
+
+#Create header with oAuth2 Token
 $bearerAuthValue = "Bearer $IDMToken"
 $headers = @{ Authorization = $bearerAuthValue }  
+
+#Create variables
 $allusers
- 
 $istartat = 1     
  
 do {
  
-  try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?startIndex=$istartat" -Headers $headers -ContentType "application/json"
+try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?startIndex=$istartat" -Headers $headers -ContentType "application/json"
         }
-                catch {
-          Write-Host "An error occurred when getting users $_"
-          break 
-        }
+            catch {
+                  Write-Host "An error occurred when getting users $_"
+                  break 
+                  }
 
-      $allusers = $scimusers.totalresults
-      $stotal = $stotal += $scimusers.itemsPerPage
-      write-host "Found $allusers users (returning $istartat to $stotal)"
-      $istartat += $scimusers.itemsPerPage
+$allusers = $scimusers.totalresults
+$stotal = $stotal += $scimusers.itemsPerPage
+write-host "Found $allusers users (returning $istartat to $stotal)"
+$istartat += $scimusers.itemsPerPage
       
-      $scimusers.Resources | Format-table -AutoSize -Property @{Name = 'Username'; Expression = {$_.username}},@{Name = 'First Name'; Expression = {$_.name.givenname}},@{Name = 'Last Name'; Expression = {$_.name.familyname}}`
-      ,@{Name = 'E-Mail'; Expression = {$_.emails.value}},@{Name = 'Active'; Expression = {$_.active}},@{Name = 'ID'; Expression = {$_.id}}
+$scimusers.Resources | Format-table -AutoSize -Property @{Name = 'Username'; Expression = {$_.username}},@{Name = 'First Name'; Expression = {$_.name.givenname}},@{Name = 'Last Name'; Expression = {$_.name.familyname}}`
+,@{Name = 'E-Mail'; Expression = {$_.emails.value}},@{Name = 'Active'; Expression = {$_.active}},@{Name = 'ID'; Expression = {$_.id}}
 
-
-    } until ($allusers -eq $stotal)
-
+} until ($allusers -eq $stotal)
            
-          } 
+} 
 Function GetGroups {
     #Connect to App Volumes Manager
     Write-Host "Getting IDM Groups on: $idmserver"
@@ -94,19 +95,18 @@ Function GetGroups {
     $headers = @{ Authorization = $bearerAuthValue }  
     
     try{
-      
       $scimgroups = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Groups" -Headers $headers -ContentType "application/json"
        }
             
-            catch {
+      catch {
               Write-Host "An error occurred when getting IDM groups $_"
-              
               break 
-                  }
-    
-                  $scimgroups.Resources | Format-Table -autosize -Property active,username,name,emails
+            }
+
+#Show returned data              
+$scimgroups.Resources | Format-Table -autosize -Property active,username,name,emails
                                   
-         }          
+}          
 
 Function GetApps {
 #Connect to App Volumes Manager
@@ -137,7 +137,7 @@ try {
     "rootResource": false
   }'
   
-  $apps = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=50" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.catalog.search+json"
+$apps = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=50" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.catalog.search+json"
 
     }
                   
@@ -152,17 +152,18 @@ try {
 
 Function GetCategories {
 
-  Write-Host "Getting health of: $idmserver"
-  $bearerAuthValue = "Bearer $IDMToken"
-  $headers = @{Authorization = $bearerAuthValue
-               Accept = "application/vnd.vmware.horizon.manager.labels+json"
-               }  
+Write-Host "Getting health of: $idmserver"
+
+#Constuct header with oAuth2 Token
+$bearerAuthValue = "Bearer $IDMToken"
+$headers = @{Authorization = $bearerAuthValue 
+Accept = "application/vnd.vmware.horizon.manager.labels+json"}  
                         
-    try {
+try {
                
     $cats = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/labels" -Headers $headers -ContentType "application/vnd.vmware.horizon.manager.labels+json;charset=UTF-8"
               
-        }
+    }
                                 
     catch {
           Write-Host "An error occurred when getting IDM Apps $_"
@@ -175,17 +176,17 @@ $cats.items | Format-table -AutoSize -Property ID,Name
 
 Function SendNotification {
  
-  $bearerAuthValue = "Bearer $IDMToken"
-  $headers = @{Authorization = $bearerAuthValue}
-  $guid = New-GUID 
+$bearerAuthValue = "Bearer $IDMToken"
+$headers = @{Authorization = $bearerAuthValue}
+$guid = New-GUID 
 
-  $usertoalert = Read-Host -Prompt 'Enter the User to Notify' 
+$usertoalert = Read-Host -Prompt 'Enter the User to Notify' 
                         
-    try {
+try {
                
     $user = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?filter=UserName%20eq%20""$usertoalert""" -Headers $headers
               
-        }
+    }
                                         
     catch {
           Write-Host "An error occurred when searching for user $_"
@@ -200,16 +201,13 @@ if ($user.totalresults -eq 0)
 
 $title = Read-Host -Prompt 'Enter the Title' 
 $description = Read-Host -Prompt 'Enter the Message' 
-
                         
 $theuser = $user.resources.id 
 
 try {
   #Sends a message with a button and URL  
   $JSONMessage = '{"header": {"title": "' + $title + '"},"body": {"description": "' + $description +'"},"actions":[{"id":"' + $guid +'","label":"Notification API Docs","completed_label": "Page Visited","type":"POST", "primary": true,"allow_repeated": false,"url":{"href":"https://code.vmware.com/apis/402/workspace-one-notifications"},"action_key":"OPEN_IN"}]}'
-
-  $message = Invoke-RestMethod -Method Post -Uri "https://$idmserver/ws1notifications/api/v1/users/$theuser/notifications" -Headers $headers -Body $JSONMessage -ContentType "application/json"            
-      
+  $message = Invoke-RestMethod -Method Post -Uri "https://$idmserver/ws1notifications/api/v1/users/$theuser/notifications" -Headers $headers -Body $JSONMessage -ContentType "application/json"               
 }
                                    
   catch {
@@ -282,24 +280,16 @@ $emailaddress = Read-Host -Prompt 'Input the users email address'
 
 $UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":"' + $firstname + '","familyName":"'+ $lastname +'"},"userName":"' + $username + '","emails":[{"value":"' + $emailaddress + '"}]}'
 
-$userjson
-
   try{
-     
     $scimcreate = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -Body $UserJson -ContentType "application/json;charset=UTF-8"
-             }
+      }
   
-              catch {
+        catch {
               Write-Host "An error occurred when creating a user $_"
-             
               break
-                 
-                }
-          
+              }
                   $scimcreate.Resources | Format-Table -autosize -Property active,username,name,emails
-                  
-                }
-                
+}
 function Show-Menu
   {
     param (
