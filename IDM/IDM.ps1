@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-IDM API Examples  
+IDM API Examples 
 
 .OUTPUTS
   Log file stored in %temp%\expand-wv.log>
@@ -15,34 +15,7 @@ IDM API Examples
   
 #>
 
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
-#Log File Info
-$sLogPath = $env:TEMP 
-$sDomain = $env:USERDOMAIN
-$sUser = $env:USERNAME
-$sComputer = $env:COMPUTERNAME
-$sLogName = "expand-wv.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-$sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
-Add-Content $sLogFile -Value $sLogTitle
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
-Function Write-Log {
-    [CmdletBinding()]
-    Param(
-    
-    [Parameter(Mandatory=$True)]
-    [System.Object]
-    $Message
-
-    )
-    $Stamp = (Get-Date).toString("MM/dd/yyyy HH:mm:ss")
-    $Line = "$Stamp $Level $Message"
-    Add-Content $sLogFile -Value $Line
-   
-    }
-
 Function LogintoIDM {
 
 #Get data and save to variables
@@ -89,7 +62,6 @@ Write-Host "Getting IDM Users on: $idmserver"
 $bearerAuthValue = "Bearer $IDMToken"
 $headers = @{ Authorization = $bearerAuthValue }  
 $allusers
-   
  
 $istartat = 1     
  
@@ -115,8 +87,7 @@ do {
 
            
           } 
-  
- Function GetGroups {
+Function GetGroups {
     #Connect to App Volumes Manager
     Write-Host "Getting IDM Groups on: $idmserver"
     $bearerAuthValue = "Bearer $IDMToken"
@@ -275,8 +246,7 @@ $json = '{"name":"' + $newcatname + '"}'
                         
 $cats.items | Format-table -AutoSize 
                                                       
-}
-              
+}       
 
 Function ServiceHealth {
              
@@ -413,5 +383,4 @@ GetCategories
  until ($selection -eq 'q')
 
 
-Write-Log -Message "Finishing Script******************************************************"
 Write-Host "Finished"
