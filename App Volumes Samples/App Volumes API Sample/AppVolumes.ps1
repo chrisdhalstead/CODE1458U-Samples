@@ -3,15 +3,13 @@
   Script to update the size of VMware App Volumes Writable Volumes.  Can also be used to view sizes of volumes.
 	
 .OUTPUTS
-  Log file stored in %temp%\expand-wv.log>
+  Log file stored in %temp%\App_Volumes.log>
 
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  4/8/2019
+  Creation Date:  8/7/2019
   Purpose/Change: Initial script development
-  **This script and the App Volumes API is not supported by VMware**
-  New sizes won't be reflected until a user logs in and attaches the Writable Volume	
   
 #>
 
@@ -22,7 +20,7 @@ $sLogPath = $env:TEMP
 $sDomain = $env:USERDOMAIN
 $sUser = $env:USERNAME
 $sComputer = $env:COMPUTERNAME
-$sLogName = "Horizon.log"
+$sLogName = "AppVolumes.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 $sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
 Add-Content $sLogFile -Value $sLogTitle
@@ -181,8 +179,10 @@ Function Writables {
               break 
               }
                      
-    $sresult.datastores.writable_volumes | Format-Table -AutoSize -Property Name,Owner_Name,Total_MB,Percent_Available
-             
+    $sresult.datastores.writable_volumes | Format-Table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Owner UPN'; Expression = {$_.owner_upn}},`
+    @{Name = 'Type'; Expression = {$_.owner_type}},@{Name = 'Size in MB'; Expression = {$_.Size_mb}},@{Name = '% Available'; Expression = {$_.percent_available}},`
+    @{Name = 'Last Mounted'; Expression = {$_.mounted_at_human}},@{Name = 'Attached?'; Expression = {$_.attached}},@{Name = 'Enabled?'; Expression = {$_.Status}}
+            
                          
 } 
 
