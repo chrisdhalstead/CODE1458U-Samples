@@ -6,8 +6,7 @@ Samples Scripts Using the VMware Horzon API via PowerCLI
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
   Creation Date:  7/18/2019
-  Purpose/Change: Initial script development
-  **This script and the VMware Horizon REST API is not supported by VMware**
+  Purpose/Change: Initial script developmen
  
 #>
 
@@ -51,13 +50,12 @@ $domain = read-host -Prompt 'Enter the Horizon Domain'
 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
 $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
-
 try {
     
-$script:hvServer = Connect-HVServer -Server $horizonserver -User $username -Password $UnsecurePassword -Domain $domain
-$script:hvServices = $hvServer.ExtensionData
+    $script:hvServer = Connect-HVServer -Server $horizonserver -User $username -Password $UnsecurePassword -Domain $domain
+    $script:hvServices = $hvServer.ExtensionData
 
-}
+    }
 
 catch {
   Write-Host "An error occurred when logging on $_"
@@ -164,45 +162,6 @@ $dtencoded = $dtlookup[$thedesktop]
         
                
 }     
-Function RefreshPool {
-    
-  if ([string]::IsNullOrEmpty($hvserver))
-        {
-          write-host "You are not logged into Horizon"
-          break   
-        }
-  
-  
-  GetDtPools   
-  
-  $thepool = Read-Host -Prompt 'Enter the Pool Name'
-  
-  $dtencoded = $dtlookup[$thedesktop]
-  
-      Write-host "Would you like to refresh $thepool? (Default is No)" -ForegroundColor Yellow 
-      $Readhost = Read-Host " ( y / n ) " 
-      Switch ($ReadHost) 
-       { 
-         Y {Write-host "Refreshing $thepool. This will take a few minutes.";Continue} 
-         N {Write-Host "Doing Nothing"; break} 
-         Default {Write-Host "Default, Do Nothing"; break} 
-       } 
-       
-         
-        try {
-   
-              $hvServices.Desktop.p($dtencoded)
-              
-            }
-          
-          catch {
-            Write-Host "An error occurred when logging on $_"
-           break 
-          }
-          
-                 
-  } 
-
 Function GetDtPools {
     
   if ([string]::IsNullOrEmpty($hvserver))
@@ -257,7 +216,6 @@ $sresult.Results | Format-table -AutoSize -Property @{Name = 'Pool Name'; Expres
 
 
 } 
-
 
 Function GetMachines {
     
