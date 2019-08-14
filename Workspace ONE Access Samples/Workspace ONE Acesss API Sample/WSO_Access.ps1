@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-IDM API Examples 
+Workspace ONE Access (IDM) API Examples 
 
 .OUTPUTS
   Log file stored in %temp%\expand-wv.log>
@@ -293,7 +293,7 @@ $UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domai
 function Show-Menu
   {
     param (
-          [string]$Title = 'IDM API Menu'
+          [string]$Title = 'Workspace ONE Access API Menu'
           )
        Clear-Host
        Write-Host "================ $Title ================"
