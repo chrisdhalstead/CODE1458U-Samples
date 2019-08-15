@@ -105,7 +105,6 @@ foreach ($id in $sresult.devices.uuid) {
   
 }
 
-
 } 
 
 Function SearchForGroups {
