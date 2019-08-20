@@ -246,7 +246,7 @@ function Show-Menu
        Write-Host "Press '3' for AppStack Details"
        Write-Host "Press '4' for a List of Applications in an AppStack"
        Write-Host "Press '5' for Writable Volumes"
-       Write-Host "Press '6' to Increase Writable Volume Size"
+       Write-Host "Press '6' to list Applications in an AppStack"
        Write-Host "Press '7' for the Activity Log"
        Write-Host "Press '8' for Online Entities"
        Write-Host "Press 'Q' to quit."
