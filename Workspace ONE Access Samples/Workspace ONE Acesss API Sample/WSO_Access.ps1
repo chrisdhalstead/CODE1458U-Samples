@@ -2,19 +2,16 @@
 .SYNOPSIS
 Workspace ONE Access (IDM) API Examples 
 
-.OUTPUTS
-  Log file stored in %temp%\expand-wv.log>
-
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  8/1/2019
+  Creation Date:  8/20/2019
   Purpose/Change: Initial script development
-  **This script and the App Volumes API is not supported by VMware**
-  New sizes won't be reflected until a user logs in and attaches the Writable Volume	
   
 #>
 
+#----------------------------------------------------------[Declarations]----------------------------------------------------------
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function LogintoIDM {
 
@@ -31,7 +28,7 @@ $basicAuthValue = "Basic $base64"
 
 #Retrieve oAuth2 Token
 Write-Host "Getting Token From: $idmserver"
-$headers = @{ Authorization = $basicAuthValue }
+$headers = @{Authorization = $basicAuthValue }
 try {
     
     $sresult = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/API/1.0/oauth2/token?grant_type=client_credentials" -Headers $headers 
@@ -58,7 +55,7 @@ if ([string]::IsNullOrEmpty($IDMToken))
       break   
     }
 
-Write-Host "Getting IDM Users on: $idmserver"
+Write-Host "Getting Workspace ONE Access Users on: $idmserver"
 
 #Create header with oAuth2 Token
 $bearerAuthValue = "Bearer $IDMToken"
@@ -89,7 +86,7 @@ $scimusers.Resources | Format-table -AutoSize -Property @{Name = 'Username'; Exp
            
 } 
 Function GetGroups {
-    #Connect to App Volumes Manager
+    #Connect to IDM
     Write-Host "Getting IDM Groups on: $idmserver"
     $bearerAuthValue = "Bearer $IDMToken"
     $headers = @{ Authorization = $bearerAuthValue }  
@@ -109,8 +106,8 @@ $scimgroups.Resources | Format-Table -autosize -Property active,username,name,em
 }          
 
 Function GetApps {
-#Connect to App Volumes Manager
-Write-Host "Getting health of: $idmserver"
+#Connect to IDM
+Write-Host "Getting apps on: $idmserver"
 $bearerAuthValue = "Bearer $IDMToken"
 $headers = @{Authorization = $bearerAuthValue
              Accept = "application/vnd.vmware.horizon.manager.catalog.item.list+json"
@@ -146,13 +143,15 @@ $apps = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/mana
              break 
             }
           
-            $apps.items | Format-table -AutoSize -Property @{Name = 'E-Mail'; Expression = {$_.emails.value}}
+            $apps.items | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Description'; Expression = {$_.description}},@{Name = 'Type'; Expression = {$_.catalogitemtype}
                                         
-            }          
+            }   
+          
+}       
 
 Function GetCategories {
 
-Write-Host "Getting health of: $idmserver"
+Write-Host "Getting categories on: $idmserver"
 
 #Constuct header with oAuth2 Token
 $bearerAuthValue = "Bearer $IDMToken"
@@ -221,7 +220,6 @@ $message.created_at | Format-Table
 }  
 Function New_Category {
 
-  Write-Host "Getting health of: $idmserver"
   $bearerAuthValue = "Bearer $IDMToken"
   $headers = @{Authorization = $bearerAuthValue
                Accept = "application/vnd.vmware.horizon.manager.label+json"
@@ -298,13 +296,13 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "Press '1' to Login to IDM"
-       Write-Host "Press '2' for a list of IDM Users"
+       Write-Host "Press '1' to Login to Workspace ONE Access"
+       Write-Host "Press '2' for a list of Workspace ONE Access Users"
        Write-Host "Press '3' to create a Local User"
        Write-Host "Press '4' for a list of Apps"
        Write-Host "Press '5' for a list of the Categories"
        Write-Host "Press '6' to add a new Category"
-       Write-Host "Press '7' for IDM Service Health"
+       Write-Host "Press '7' for Workspace ONE Access Service Health"
        Write-Host "Press '8' to Send a Notification to a User"
        Write-Host "Press 'Q' to quit."
          }
