@@ -202,6 +202,3 @@ Activity_Log
  }
  until ($selection -eq 'q')
 
-
-Write-Log -Message "Finishing Script******************************************************"
-Write-Host "Finished"
