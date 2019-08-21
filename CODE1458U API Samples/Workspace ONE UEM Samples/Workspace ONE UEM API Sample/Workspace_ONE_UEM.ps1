@@ -56,27 +56,19 @@ catch {
   break
 }
 
+write-host $sresult.Devices.Count "devices found"
 
-foreach ($id in $sresult.devices.uuid) {
-
-  try {
-    
-    $device = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/API/mdm/devices/$id" -ContentType "application/json" -Header $header
-    $device | format-table -Property @{Name = 'Username'; Expression = {$_.enrollmentinfo.username}},FriendlyName,@{Name = 'OS'; Expression = {$_.platforminfo.osversion}},DataEncrypted,@{Name = 'Enrollment Status'; Expression = {$_.enrollmentinfo.enrollmentstatus}}
-
-  }
-  catch {
-    
-    Write-Host "An error occurred when getting device $_"
-    break
-
-  }
-  
-}
+$sresult.devices | format-table -Property @{Name = 'Username'; Expression = {$_.username}},@{Name = 'Platform'; Expression = {$_.platform}},@{Name = 'Enrollment Status'; Expression = {$_.enrollmentstatus}}`
+,@{Name = 'ID'; Expression = {$_.id.value}}
 
 } 
 
-Function SearchForGroups {
+
+
+
+
+
+Function DeviceDetails {
 
   if ([string]::IsNullOrEmpty($wsoserver))
     {
@@ -105,11 +97,11 @@ Function SearchForGroups {
       "Content-Type"   = "application/json";}
     }
   
-  $group = Read-Host -Prompt 'Enter a group name'
+  $id = Read-Host -Prompt 'Enter a device id'
   
   try {
       
-    $sresult = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/API/system/groups/search?name=$group" -Body $Credentials -ContentType "application/json" -Header $header
+    $sresult = Invoke-RestMethod -Method Get -Uri "https://$wsoserver/API/mdm/devices/$id" -ContentType "application/json" -Header $header
   
   }
   
@@ -126,7 +118,7 @@ if ($sresult.total -eq 0) {
 }
 
   #Logged In
-  $sresult.LocationGroups | Format-table -AutoSize 
+  $sresult | Format-list
   
   } 
   
@@ -140,7 +132,7 @@ function Show-Menu
        Clear-Host
        Write-Host "================ $Title ================"
        Write-Host "Press '1' to show devices by username"
-       Write-Host "Press '2' to show groups by name"
+       Write-Host "Press '2' for device details"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -159,44 +151,10 @@ do
     
     '2' {
    
-         SearchForGroups
+         DeviceDetails
 
     }
     
-    '3' {
-       
-         AppStackDetails
-      
-    }
-'4' {
-       
-    AppStackApps
-     
-    }
-
-'5' {
-       
-    Writables
- 
-}
-'6' {
-  
- AppStackApps
-
-}
-
-'7' {
-  
-Activity_Log
- 
- }
-
- '8' {
-  
-  Get_Online
-
-}
-
     }
     pause
  }
