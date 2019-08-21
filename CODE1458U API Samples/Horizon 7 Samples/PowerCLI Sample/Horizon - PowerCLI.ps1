@@ -1,43 +1,17 @@
 <#
 .SYNOPSIS
-Samples Scripts Using the VMware Horzon API via PowerCLI
+Samples Scripts Using the VMware Horizon API via PowerCLI
 	
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
   Creation Date:  7/18/2019
-  Purpose/Change: Initial script developmen
- 
-#>
+  Purpose/Change: Initial script development
+ #>
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
-#Log File Info
-$sLogPath = $env:TEMP 
-$sDomain = $env:USERDOMAIN
-$sUser = $env:USERNAME
-$sComputer = $env:COMPUTERNAME
-$sLogName = "Horizon.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-$sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
-Add-Content $sLogFile -Value $sLogTitle
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
-Function Write-Log {
-    [CmdletBinding()]
-    Param(
-    
-    [Parameter(Mandatory=$True)]
-    [System.Object]
-    $Message
-
-    )
-    $Stamp = (Get-Date).toString("MM/dd/yyyy HH:mm:ss")
-    $Line = "$Stamp $Level $Message"
-    Add-Content $sLogFile -Value $Line
-   
-    }
-
 Function LogintoHorizon {
 
 #Capture Login Information
@@ -317,8 +291,7 @@ Function GetCSInfo {
                 
                  
               $usage = $hvservices.ConnectionServerHealth.ConnectionServerHealth_List()
-        
-           
+                   
               }
             
             catch {
@@ -364,7 +337,7 @@ Function GetApplications {
             
             write-host "There are" $sresult.results.Count "total applications"
     
-            $sresult.Results.data | Format-Table -autosize       
+            $sresult.Results | Format-Table -autosize @{Name = 'Name'; Expression = {$_.data.name}}      
              
                      
            
@@ -450,5 +423,3 @@ do
  until ($selection -eq 'q')
 
 
-Write-Log -Message "Finishing Script******************************************************"
-Write-Host "Finished"
