@@ -1,47 +1,20 @@
 <#
 .SYNOPSIS
-  Script to update the size of VMware App Volumes Writable Volumes.  Can also be used to view sizes of volumes.
+  Sample script for VMware App Volumes REST API
 	
-.OUTPUTS
-  Log file stored in %temp%\App_Volumes.log>
-
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  8/7/2019
+  Creation Date:  8/21/2019
   Purpose/Change: Initial script development
   
 #>
 
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
-#Log File Info
-$sLogPath = $env:TEMP 
-$sDomain = $env:USERDOMAIN
-$sUser = $env:USERNAME
-$sComputer = $env:COMPUTERNAME
-$sLogName = "AppVolumes.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-$sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
-Add-Content $sLogFile -Value $sLogTitle
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
-Function Write-Log {
-    [CmdletBinding()]
-    Param(
-    
-    [Parameter(Mandatory=$True)]
-    [System.Object]
-    $Message
-
-    )
-    $Stamp = (Get-Date).toString("MM/dd/yyyy HH:mm:ss")
-    $Line = "$Stamp $Level $Message"
-    Add-Content $sLogFile -Value $Line
-   
-    }
 
 Function LogintoAppVolumes {
 
@@ -95,10 +68,8 @@ Function ListAppStacks {
     }
     
     catch {
-      Write-Host "An error occurred when logging on $_"
-      Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-      Write-Log -Message "Finishing Script*************************************"
-     break 
+      Write-Host "An error occurred when getting AppStacks $_"
+      break 
     }
     
 write-host "List of AppStacks on: "$appvolserver
@@ -123,9 +94,7 @@ Function AppStackDetails {
         
         catch {
           Write-Host "An error occurred when logging on $_"
-          Write-Log -Message "Error when logging on to AppVolumes Manager: $_"
-          Write-Log -Message "Finishing Script*************************************"
-         break 
+        break 
         }
         
         
@@ -311,5 +280,3 @@ Activity_Log
  until ($selection -eq 'q')
 
 
-Write-Log -Message "Finishing Script******************************************************"
-Write-Host "Finished"
