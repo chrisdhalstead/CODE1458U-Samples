@@ -1,49 +1,18 @@
 <#
 .SYNOPSIS
-  Script to update the size of VMware App Volumes Writable Volumes.  Can also be used to view sizes of volumes.
-	
-.OUTPUTS
-  Log file stored in %temp%\expand-wv.log>
+Sample script for VMware Workspace ONE UEM REST API
 
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  4/8/2019
+  Creation Date:  8/21/2019
   Purpose/Change: Initial script development
-  **This script and the App Volumes API is not supported by VMware**
-  New sizes won't be reflected until a user logs in and attaches the Writable Volume	
   
 #>
 
-
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
-#Log File Info
-$sLogPath = $env:TEMP 
-$sDomain = $env:USERDOMAIN
-$sUser = $env:USERNAME
-$sComputer = $env:COMPUTERNAME
-$sLogName = "Horizon.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-$sLogTitle = "Starting Script as $sdomain\$sUser from $scomputer***************"
-Add-Content $sLogFile -Value $sLogTitle
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
-Function Write-Log {
-    [CmdletBinding()]
-    Param(
-    
-    [Parameter(Mandatory=$True)]
-    [System.Object]
-    $Message
-
-    )
-    $Stamp = (Get-Date).toString("MM/dd/yyyy HH:mm:ss")
-    $Line = "$Stamp $Level $Message"
-    Add-Content $sLogFile -Value $Line
-   
-    }
 
 Function SearchForDevices {
 
@@ -172,8 +141,6 @@ function Show-Menu
        Write-Host "================ $Title ================"
        Write-Host "Press '1' to show devices by username"
        Write-Host "Press '2' to show groups by name"
-       Write-Host "Press '3' for AppStack Details"
-       Write-Host "Press '4' for a List of Applications in an AppStack"
        Write-Host "Press 'Q' to quit."
          }
 
