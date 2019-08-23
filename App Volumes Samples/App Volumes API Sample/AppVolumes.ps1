@@ -128,6 +128,30 @@ Function AppStackApps {
 
            
               } 
+Function AllApps {
+   
+  if ([string]::IsNullOrEmpty($AVSession))
+        {
+         write-host "You are not logged into App Volumes"
+         break   
+                             
+        }
+                  
+                   
+    try {
+                              
+          $sresult = Invoke-RestMethod -Method Get -Uri "https://$appvolserver/cv_api/applications" -ContentType "application/json" -WebSession $AVSession
+        }
+                          
+          catch {
+                  Write-Host "An error occurred when getting apps $_"
+                  break 
+                }
+                          
+      $sresult.applications | Format-Table -AutoSize -Property Name,version,publisher
+              
+                         
+      } 
 
 Function Writables {
    
@@ -215,7 +239,7 @@ function Show-Menu
        Write-Host "Press '3' for AppStack Details"
        Write-Host "Press '4' for a List of Applications in an AppStack"
        Write-Host "Press '5' for Writable Volumes"
-       Write-Host "Press '6' to list Applications in an AppStack"
+       Write-Host "Press '6' to list all Applications"
        Write-Host "Press '7' for the Activity Log"
        Write-Host "Press '8' for Online Entities"
        Write-Host "Press 'Q' to quit."
@@ -229,36 +253,36 @@ do
     switch ($selection)
     {
     
-    '1' {  
+'1' {  
 
-         LogintoAppVolumes
+LogintoAppVolumes
     } 
     
-    '2' {
+'2' {
    
-         ListAppStacks
+ListAppStacks
 
     }
     
-    '3' {
+'3' {
        
-         AppStackDetails
+AppStackDetails
       
     }
 '4' {
        
-    AppStackApps
+AppStackApps
      
     }
 
 '5' {
        
-    Writables
+Writables
  
 }
 '6' {
   
- AppStackApps
+ AllApps
 
 }
 
@@ -270,7 +294,7 @@ Activity_Log
 
  '8' {
   
-  Get_Online
+Get_Online
 
 }
 
