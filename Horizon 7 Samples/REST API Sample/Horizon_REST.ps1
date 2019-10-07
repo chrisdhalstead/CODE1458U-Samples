@@ -13,6 +13,7 @@ Only works on Horizon 7.10 and Later
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 Function LogintoHorizon {
 
@@ -22,14 +23,19 @@ $Username = Read-Host -Prompt 'Enter the Username'
 $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
 $domain = Read-Host -Prompt 'Enter the Domain'
 
+#Convert the Password
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+$UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+
+#Construct JSON to pass to login endpoint
+$Credentials = '{"username":"' + $username + '","password":"' + $unsecurepassword + '","domain":"' + $domain + '"}'
+
 #Retrieve oAuth2 Token
 Write-Host "Getting JWT From: $HorizonServer"
 
-
-$headers = @{Authorization = $basicAuthValue }
 try {
     
-    $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/login" -Headers $headers 
+    $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/rest/login" -Body $Credentials 
 }
 
 catch {
@@ -289,12 +295,12 @@ $UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domai
 function Show-Menu
   {
     param (
-          [string]$Title = 'Workspace ONE Access API Menu'
+          [string]$Title = 'Horizon REST API Menu'
           )
        Clear-Host
        Write-Host "================ $Title ================"
              
-       Write-Host "Press '1' to Login to Workspace ONE Access"
+       Write-Host "Press '1' to Login to Horizon"
        Write-Host "Press '2' for a list of Workspace ONE Access Users"
        Write-Host "Press '3' to create a Local User"
        Write-Host "Press '4' for a list of Apps"
@@ -315,7 +321,7 @@ do
     
     '1' {  
 
-         LogintoIDM
+         LogintoHorizon
     } 
     
     '2' {
