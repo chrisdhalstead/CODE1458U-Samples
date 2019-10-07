@@ -35,7 +35,7 @@ Write-Host "Getting JWT From: $HorizonServer"
 
 try {
     
-    $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/rest/login" -Body $Credentials 
+    $sresult = Invoke-RestMethod -Method Post -Uri "https://$horizonserver/rest/login" -Body $Credentials -ContentType "application/json"
 }
 
 catch {
