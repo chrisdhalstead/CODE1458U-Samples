@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
 Horizon 7.10 REST API Sample
-Only works on Horizon 7.10 and Later
+Only works on Horizon 7.10 and later
 
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  8/20/2019
+  Creation Date:  10/9/2019
   Purpose/Change: Initial script development
   
 #>
@@ -66,219 +66,175 @@ $bearerAuthValue = "Bearer $JWToken"
 $headers = @{ Authorization = $bearerAuthValue }  
 
 
-try{$cs = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/connection-servers/" -Headers $headers -ContentType "application/json"
+try{$cs = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/connection-servers" -Headers $headers -ContentType "application/json"
         }
             catch {
                   Write-Host "An error occurred when getting connection servers $_"
                   break 
                   }
 
-$cs | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Connection Count'; Expression = {$_.Connection_Count}}
-           
-} 
-Function GetGroups {
-    #Connect to IDM
-    Write-Host "Getting IDM Groups on: $idmserver"
-    $bearerAuthValue = "Bearer $IDMToken"
-    $headers = @{ Authorization = $bearerAuthValue }  
-    
-    try{
-      $scimgroups = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Groups" -Headers $headers -ContentType "application/json"
-       }
-            
-      catch {
-              Write-Host "An error occurred when getting IDM groups $_"
-              break 
-            }
+#$cs | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Connection Count'; Expression = {$_.Connection_Count}}
+ 
+$cs | format-list
 
-#Show returned data              
-$scimgroups.Resources | Format-Table -autosize -Property active,username,name,emails
-                                  
-}          
-
-Function GetApps {
-#Connect to IDM
-Write-Host "Getting apps on: $idmserver"
-$bearerAuthValue = "Bearer $IDMToken"
-$headers = @{Authorization = $bearerAuthValue
-             Accept = "application/vnd.vmware.horizon.manager.catalog.item.list+json"
-            }  
-          
-try {
-       
-
-  $json = '{
-    "includeAttributes": [
-      "labels",
-      "uiCapabilities",
-      "authInfo"
-    ],
-    "includeTypes": [
-      "Saml11",
-      "Saml20",
-      "WSFed12",
-      "WebAppLink",
-      "AnyApp"
-    ],
-    "nameFilter": "",
-    "categories": [],
-    "rootResource": false
-  }'
-  
-$apps = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/catalogitems/search?startIndex=0&pageSize=50" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.catalog.search+json"
-
-    }
-                  
-      catch {
-             Write-Host "An error occurred when getting IDM Apps $_"
-             break 
-            }
-          
-            $apps.items | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Description'; Expression = {$_.description}},@{Name = 'Type'; Expression = {$_.catalogitemtype}
-                                        
-            }   
-          
-}       
-
-Function GetCategories {
-
-Write-Host "Getting categories on: $idmserver"
-
-#Constuct header with oAuth2 Token
-$bearerAuthValue = "Bearer $IDMToken"
-$headers = @{Authorization = $bearerAuthValue 
-Accept = "application/vnd.vmware.horizon.manager.labels+json"}  
-                        
-try {
-               
-    $cats = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/labels" -Headers $headers -ContentType "application/vnd.vmware.horizon.manager.labels+json;charset=UTF-8"
-              
-    }
-                                
-    catch {
-          Write-Host "An error occurred when getting IDM Apps $_"
-          break 
-          }
-                        
-$cats.items | Format-table -AutoSize -Property ID,Name
-                                                      
 }   
 
-Function SendNotification {
- 
-$bearerAuthValue = "Bearer $IDMToken"
-$headers = @{Authorization = $bearerAuthValue}
-$guid = New-GUID 
+Function GetFarms {
 
-$usertoalert = Read-Host -Prompt 'Enter the User to Notify' 
-                        
-try {
-               
-    $user = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?filter=UserName%20eq%20""$usertoalert""" -Headers $headers
-              
-    }
-                                        
-    catch {
-          Write-Host "An error occurred when searching for user $_"
-          break 
-          }
-
-if ($user.totalresults -eq 0) 
-{
-  Write-Host "$usertoalert not found"
-  break
-}
-
-$title = Read-Host -Prompt 'Enter the Title' 
-$description = Read-Host -Prompt 'Enter the Message' 
-                        
-$theuser = $user.resources.id 
-
-try {
-  #Sends a message with a button and URL  
-  $JSONMessage = '{"header": {"title": "' + $title + '"},"body": {"description": "' + $description +'"},"actions":[{"id":"' + $guid +'","label":"Notification API Docs","completed_label": "Page Visited","type":"POST", "primary": true,"allow_repeated": false,"url":{"href":"https://code.vmware.com/apis/402/workspace-one-notifications"},"action_key":"OPEN_IN"}]}'
-  $message = Invoke-RestMethod -Method Post -Uri "https://$idmserver/ws1notifications/api/v1/users/$theuser/notifications" -Headers $headers -Body $JSONMessage -ContentType "application/json"               
-}
-                                   
-  catch {
-        Write-Host "An error occurred when sending message $_"
-        break 
-        }
-           
-
-$message.created_at | Format-Table
-                                                      
-}  
-Function New_Category {
-
-  $bearerAuthValue = "Bearer $IDMToken"
-  $headers = @{Authorization = $bearerAuthValue
-               Accept = "application/vnd.vmware.horizon.manager.label+json"
-               }  
- 
-$newcatname = Read-Host -Prompt 'Enter the Category Name' 
-               
-    try {
-               
-$json = '{"name":"' + $newcatname + '"}'
-
-    $cats = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/labels" -Headers $headers -Body $json -ContentType "application/vnd.vmware.horizon.manager.label+json;charset=UTF-8"
-              
-        }
-                                
-    catch {
-          Write-Host "An error occurred when getting IDM Apps $_"
-          break 
-          }
-                        
-$cats.items | Format-table -AutoSize 
-                                                      
-}       
-
-Function ServiceHealth {
-             
-Write-Host "Getting health of: $idmserver"
-$bearerAuthValue = "Bearer $IDMToken"
-$headers = @{ Authorization = $bearerAuthValue }  
-                        
-try {
-                          
-      $health = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/system/health" -Headers $headers -ContentType "application/json"
-              
-    }
-                                
-catch {
-      Write-Host "An error occurred when getting IDM Groups $_"
-      break 
-      }
-                        
-$health | Format-list 
-                                                      
-}          
-              
-Function CreateUser {
-         
-Write-Host "Getting IDM Groups on: $idmserver"
-$bearerAuthValue = "Bearer $IDMToken"
-$headers = @{ Authorization = $bearerAuthValue }  
-
-$firstname = Read-Host -Prompt 'Input the users first name'
-$lastname = Read-Host -Prompt 'Input the users last name'
-$username = read-host -Prompt 'Input the User Name'
-$emailaddress = Read-Host -Prompt 'Input the users email address'
-
-$UserJson = '{"urn:scim:schemas:extension:workspace:1.0":{"domain":"System Domain"},"urn:scim:schemas:extension:enterprise:1.0":{},"schemas":["urn:scim:schemas:extension:workspace:mfa:1.0","urn:scim:schemas:extension:workspace:1.0","urn:scim:schemas:extension:enterprise:1.0","urn:scim:schemas:core:1.0"],"name":{"givenName":"' + $firstname + '","familyName":"'+ $lastname +'"},"userName":"' + $username + '","emails":[{"value":"' + $emailaddress + '"}]}'
-
-  try{
-    $scimcreate = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users" -Headers $headers -Body $UserJson -ContentType "application/json;charset=UTF-8"
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
       }
   
-        catch {
-              Write-Host "An error occurred when creating a user $_"
-              break
-              }
-                  $scimcreate.Resources | Format-Table -autosize -Property active,username,name,emails
+  Write-Host "Getting Farm Data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+  
+  
+  try{$farm = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/farms" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting farm data $_"
+                    break 
+                    }
+  
+if([string]::IsNullOrEmpty($farm))
+{
+  write-host "There is no Farm data."
+  break   
 }
+
+$farm | format-list
+  
+}
+
+Function GetRDS {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting RDS Data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+  
+  
+  try{$rds = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/rds-servers" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting RDS server data $_"
+                    break 
+                    }
+  
+if([string]::IsNullOrEmpty($rds))
+{
+  write-host "There is no RDS Server data."
+  break   
+}
+
+$rds | format-list
+  
+}
+
+Function GetEventDB {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting Events Database Data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+  
+  
+  try{$edb = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/event-database" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting events db data $_"
+                    break 
+                    }
+  
+if([string]::IsNullOrEmpty($edb))
+{
+  write-host "There is no Events DB data."
+  break   
+}
+
+$edb | format-list
+  
+}
+
+Function GetAD {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting AD Domain Data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+    
+  try{[string]$addata = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/ad-domains" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting AD domains data $_"
+                    break 
+                    }
+  if([string]::IsNullOrEmpty($addata))
+        {
+          write-host "There is no AD data."
+          break   
+        }
+  
+$addata | format-list
+  
+}
+
+Function GetUAG {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting UAG Data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+    
+  try{[string]$uag = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/gateways" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting UAG data $_"
+                    break 
+                    }
+  if([string]::IsNullOrEmpty($uag))
+        {
+          write-host "There is no UAG data."
+          break   
+        }
+  
+$UAG | format-list
+  
+}
+
 function Show-Menu
   {
     param (
@@ -289,12 +245,14 @@ function Show-Menu
              
        Write-Host "Press '1' to Login to Horizon"
        Write-Host "Press '2' for Connection Servers"
-       Write-Host "Press '3' to create a Local User"
-       Write-Host "Press '4' for a list of Apps"
-       Write-Host "Press '5' for a list of the Categories"
-       Write-Host "Press '6' to add a new Category"
-       Write-Host "Press '7' for Workspace ONE Access Service Health"
-       Write-Host "Press '8' to Send a Notification to a User"
+       Write-Host "Press '3' for Farms"
+       Write-Host "Press '4' for RDS Servers"
+       Write-Host "Press '5' for Events Information"
+       Write-Host "Press '6' for AD Domains"
+       Write-Host "Press '7' for UAG Information"
+       Write-Host "Press '8' for SAML Authenticators"
+       Write-Host "Press '9' for Composer Servers"
+       Write-Host "Press '10' for Virtual Centers"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -309,44 +267,44 @@ do
     '1' {  
 
          LogintoHorizon
-    } 
+
+        } 
     
     '2' {
    
          GetCS
 
-    } 
+        } 
     
     '3' {
        
-        CreateUser
+        GetFarms
       
-    }
+        }
 
    
     '4' {
        
-    GetApps
-      
-    
-  }
+        GetRDS  
+
+        }
 
   '5' {
        
-GetCategories
+        GetEventDB
   
-}
+      }
 
 
 '6' {
        
-  New_Category
+        GetAD
     
   }
 
 '7' {
        
-  ServiceHealth
+        GetUAG
     
   }
 
