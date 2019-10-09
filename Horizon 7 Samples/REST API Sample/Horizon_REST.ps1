@@ -45,48 +45,35 @@ catch {
 }
 
 #Save the returned JSON Web Token to a Global Variable
-$script:JW_Token = $sresult.access_token
+$script:JWToken = $sresult.access_token
 
 Write-Host "Successfully Logged In"
 
   } 
-Function GetUsers {
+Function GetCS {
 
 #Check if the user is logged in
-if ([string]::IsNullOrEmpty($IDMToken))
+if ([string]::IsNullOrEmpty($JWToken))
     {
-      write-host "You are not logged into IDM"
+      write-host "You are not logged into Horizon"
       break   
     }
 
-Write-Host "Getting Workspace ONE Access Users on: $idmserver"
+Write-Host "Getting Connection Servers for: $horizonserver"
 
-#Create header with oAuth2 Token
-$bearerAuthValue = "Bearer $IDMToken"
+#Create header with JSON Web Token
+$bearerAuthValue = "Bearer $JWToken"
 $headers = @{ Authorization = $bearerAuthValue }  
 
-#Create variables
-$allusers
-$istartat = 1     
- 
-do {
- 
-try{$scimusers = Invoke-RestMethod -Method Get -Uri "https://$idmserver/SAAS/jersey/manager/api/scim/Users?startIndex=$istartat" -Headers $headers -ContentType "application/json"
+
+try{$cs = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/connection-servers/" -Headers $headers -ContentType "application/json"
         }
             catch {
-                  Write-Host "An error occurred when getting users $_"
+                  Write-Host "An error occurred when getting connection servers $_"
                   break 
                   }
 
-$allusers = $scimusers.totalresults
-$stotal = $stotal += $scimusers.itemsPerPage
-write-host "Found $allusers users (returning $istartat to $stotal)"
-$istartat += $scimusers.itemsPerPage
-      
-$scimusers.Resources | Format-table -AutoSize -Property @{Name = 'Username'; Expression = {$_.username}},@{Name = 'First Name'; Expression = {$_.name.givenname}},@{Name = 'Last Name'; Expression = {$_.name.familyname}}`
-,@{Name = 'E-Mail'; Expression = {$_.emails.value}},@{Name = 'Active'; Expression = {$_.active}},@{Name = 'ID'; Expression = {$_.id}}
-
-} until ($allusers -eq $stotal)
+$cs | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Connection Count'; Expression = {$_.Connection_Count}}
            
 } 
 Function GetGroups {
@@ -301,7 +288,7 @@ function Show-Menu
        Write-Host "================ $Title ================"
              
        Write-Host "Press '1' to Login to Horizon"
-       Write-Host "Press '2' for a list of Workspace ONE Access Users"
+       Write-Host "Press '2' for Connection Servers"
        Write-Host "Press '3' to create a Local User"
        Write-Host "Press '4' for a list of Apps"
        Write-Host "Press '5' for a list of the Categories"
@@ -326,7 +313,7 @@ do
     
     '2' {
    
-         GetUsers
+         GetCS
 
     } 
     
