@@ -190,16 +190,11 @@ Function GetAD {
   $bearerAuthValue = "Bearer $JWToken"
   $headers = @{ Authorization = $bearerAuthValue }  
     
-  try{[string]$addata = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/ad-domains" -Headers $headers -ContentType "application/json"}
+try{$addata = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/ad-domains" -Headers $headers -ContentType "application/json"}
               catch {
                     Write-Host "An error occurred when getting AD domains data $_"
                     break 
                     }
-  if([string]::IsNullOrEmpty($addata))
-        {
-          write-host "There is no AD data."
-          break   
-        }
   
 $addata | format-list
   
@@ -220,7 +215,7 @@ Function GetUAG {
   $bearerAuthValue = "Bearer $JWToken"
   $headers = @{ Authorization = $bearerAuthValue }  
     
-  try{[string]$uag = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/gateways" -Headers $headers -ContentType "application/json"}
+  try{$uag = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/gateways" -Headers $headers -ContentType "application/json"}
               catch {
                     Write-Host "An error occurred when getting UAG data $_"
                     break 
@@ -232,6 +227,89 @@ Function GetUAG {
         }
   
 $UAG | format-list
+  
+}
+Function GetSAML {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting SAML data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+    
+  try{$saml = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/saml-authenticators" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting SAML data $_"
+                    break 
+                    }
+  if([string]::IsNullOrEmpty($saml))
+        {
+          write-host "There is no SAML data."
+          break   
+        }
+  
+$saml | format-list
+  
+}
+
+Function GetComp {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting Composer Server data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+    
+  try{$comp = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/view-composers" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting SAML data $_"
+                    break 
+                    }
+  if([string]::IsNullOrEmpty($comp))
+        {
+          write-host "There is no Composer Server data."
+          break   
+        }
+  
+$comp | format-list
+  
+}
+Function GetVC {
+
+  #Check if the user is logged in
+  if ([string]::IsNullOrEmpty($JWToken))
+      {
+        write-host "You are not logged into Horizon"
+        break   
+      }
+  
+  Write-Host "Getting Virtual Center data for: $horizonserver"
+  
+  #Create header with JSON Web Token
+  $bearerAuthValue = "Bearer $JWToken"
+  $headers = @{ Authorization = $bearerAuthValue }  
+    
+  try{$vc = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/virtual-centers" -Headers $headers -ContentType "application/json"}
+              catch {
+                    Write-Host "An error occurred when getting SAML data $_"
+                    break 
+                    }
+  
+$vc | format-list
   
 }
 
@@ -310,9 +388,22 @@ do
 
   '8' {
        
-    SendNotification
+        GetSAML
       
     }
+
+  '9' {
+       
+      GetComp
+    
+  }
+
+  
+  '10' {
+       
+      GetVC
+  
+}
 
     }
     pause
