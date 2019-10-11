@@ -30,7 +30,7 @@ $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($B
 #Construct JSON to pass to login endpoint
 $Credentials = '{"username":"' + $username + '","password":"' + $unsecurepassword + '","domain":"' + $domain + '"}'
 
-#Retrieve oAuth2 Token
+#Retrieve JSON Web Token
 Write-Host "Getting JWT From: $HorizonServer"
 
 try {
