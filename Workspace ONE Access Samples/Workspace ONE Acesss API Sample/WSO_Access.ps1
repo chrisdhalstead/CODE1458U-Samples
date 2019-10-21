@@ -143,7 +143,7 @@ $apps = Invoke-RestMethod -Method Post -Uri "https://$idmserver/SAAS/jersey/mana
              break 
             }
           
-            $apps.items | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Description'; Expression = {$_.description}},@{Name = 'Type'; Expression = {$_.catalogitemtype}
+            $apps.items | Format-table -AutoSize -Property @{Name = 'UUID'; Expression = {$_.uuid}},@{Name = 'Name'; Expression = {$_.name}},@{Name = 'Description'; Expression = {$_.description}},@{Name = 'Type'; Expression = {$_.catalogitemtype}
                                         
             }   
           
