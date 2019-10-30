@@ -73,10 +73,9 @@ try{$cs = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monito
                   break 
                   }
 
-#$cs | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Connection Count'; Expression = {$_.Connection_Count}}
+$cs | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Connection Count'; Expression = {$_.Connection_Count}},`
+@{Name = 'Certificate Valid'; Expression = {$_.Certificate.valid}}
  
-$cs | format-list
-
 }   
 
 Function GetFarms {
@@ -101,13 +100,8 @@ Function GetFarms {
                     break 
                     }
   
-if([string]::IsNullOrEmpty($farm))
-{
-  write-host "There is no Farm data."
-  break   
-}
-
-$farm | format-list
+$farm | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'RDS Server Count'; Expression = {$_.rds_server_count}},`
+@{Name = 'Published Apps'; Expression = {$_.application_count}},@{Name = 'Farm Type'; Expression = {$_.details.type}}
   
 }
 
@@ -133,13 +127,9 @@ Function GetRDS {
                     break 
                     }
   
-if([string]::IsNullOrEmpty($rds))
-{
-  write-host "There is no RDS Server data."
-  break   
-}
-
-$rds | format-list
+$rds | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Enabled'; Expression = {$_.enabled}},`
+@{Name = 'Session Count'; Expression = {$_.session_count}},@{Name = 'OS'; Expression = {$_.details.operating_system}},@{Name = 'Agent'; Expression = {$_.details.agent_version}},`
+@{Name = 'State'; Expression = {$_.details.state}}
   
 }
 
@@ -165,13 +155,14 @@ Function GetEventDB {
                     break 
                     }
   
-if([string]::IsNullOrEmpty($edb))
+if($edb.status -eq "NOT_CONFIGURED")
 {
-  write-host "There is no Events DB data."
+  write-host "The Events Database is not set up"
   break   
 }
 
-$edb | format-list
+$edb | Format-table -AutoSize -Property @{Name = 'DB Server'; Expression = {$_.details.server_name}},@{Name = 'Prefix'; Expression = {$_.details.Prefix}},@{Name = 'Status'; Expression = {$_.status}},`
+@{Name = 'Number Events'; Expression = {$_.event_count}}
   
 }
 
@@ -196,7 +187,7 @@ try{$addata = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/mo
                     break 
                     }
   
-$addata | format-list
+$addata | Format-table -AutoSize -Property @{Name = 'Netbios Name'; Expression = {$_.netbios_name}},@{Name = 'DNS Name'; Expression = {$_.dns_name}},@{Name = 'NT4 Domain'; Expression = {$_.nt4_domain}}
   
 }
 
@@ -220,13 +211,14 @@ Function GetUAG {
                     Write-Host "An error occurred when getting UAG data $_"
                     break 
                     }
-  if([string]::IsNullOrEmpty($uag))
+  if($UAG.length -eq 0)
         {
           write-host "There is no UAG data."
           break   
         }
   
-$UAG | format-list
+$UAG | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Status'; Expression = {$_.status}},@{Name = 'Active Connections'; Expression = {$_.active_connection_count}},`
+@{Name = 'IP'; Expression = {$_.details.address}},@{Name = 'Version'; Expression = {$_.details.version}}
   
 }
 Function GetSAML {
@@ -249,14 +241,14 @@ Function GetSAML {
                     Write-Host "An error occurred when getting SAML data $_"
                     break 
                     }
-  if([string]::IsNullOrEmpty($saml))
+  if($saml.length -eq 0)
         {
           write-host "There is no SAML data."
           break   
         }
   
-$saml | format-list
-  
+$saml | Format-table -AutoSize -Property @{Name = 'Label'; Expression = {$_.details.label}}
+
 }
 
 Function GetComp {
@@ -276,10 +268,10 @@ Function GetComp {
     
   try{$comp = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/view-composers" -Headers $headers -ContentType "application/json"}
               catch {
-                    Write-Host "An error occurred when getting SAML data $_"
+                    Write-Host "An error occurred when getting Composer data $_"
                     break 
                     }
-  if([string]::IsNullOrEmpty($comp))
+  if($comp.length -eq 0)
         {
           write-host "There is no Composer Server data."
           break   
@@ -305,11 +297,12 @@ Function GetVC {
     
   try{$vc = Invoke-RestMethod -Method Get -Uri "https://$horizonserver/rest/monitor/virtual-centers" -Headers $headers -ContentType "application/json"}
               catch {
-                    Write-Host "An error occurred when getting SAML data $_"
+                    Write-Host "An error occurred when getting Virtual Center data $_"
                     break 
                     }
   
-$vc | format-list
+$vc | Format-table -AutoSize -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Version'; Expression = {$_.details.version}},@{Name = 'API Version'; Expression = {$_.details.api_version}}
+
   
 }
 
