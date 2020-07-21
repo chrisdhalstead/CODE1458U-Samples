@@ -1,3 +1,4 @@
+
 <#
 .SYNOPSIS
 Samples Scripts Using the VMware Horizon API via PowerCLI
@@ -15,6 +16,7 @@ Samples Scripts Using the VMware Horizon API via PowerCLI
 Function LogintoHorizon {
 
 #Capture Login Information
+
 $script:HorizonServer = Read-Host -Prompt 'Enter the Horizon Server Name'
 $Username = Read-Host -Prompt 'Enter the Username'
 $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
