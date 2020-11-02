@@ -122,7 +122,10 @@ Function SetCSPairingPW {
   try {
   $ConnectionServerId = $script:hvServices.connectionserver.ConnectionServer_List()[0].Id
   $SSPassword = Read-Host -Prompt 'Specify Security Server Pairing Password' -AsSecureString
-  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($SSPassword)
+  #Convert Password
+  $BSTRss = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SSPassword)
+  $SSUnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRss)
+  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($SSUnsecurePassword)
   $SecureString = New-Object VMware.Hv.SecureString
   $SecureString.Utf8String = $Bytes
   $PairingData = New-Object VMware.Hv.ConnectionServerSecurityServerPairingData
