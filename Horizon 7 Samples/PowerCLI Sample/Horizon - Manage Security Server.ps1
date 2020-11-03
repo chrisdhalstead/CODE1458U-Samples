@@ -31,6 +31,8 @@ try {
     
     $script:hvServer = Connect-HVServer -Server $horizonserver -User $username -Password $UnsecurePassword -Domain $domain
     $script:hvServices = $hvServer.ExtensionData
+    $script:cs = $script:hvServices.connectionserver.ConnectionServer_List()[0].general.name
+    $script:csid = $script:hvServices.connectionserver.ConnectionServer_List()[0].id
 
     }
 
@@ -55,8 +57,7 @@ Function GetSSInfo {
     
                 
         try {
-           
-           
+                      
           $ss = $hvservices.SecurityServer.SecurityServer_List()
                   
           $script:sslookup = @{}
@@ -67,7 +68,7 @@ Function GetSSInfo {
              
         }
 
-        $cs = $script:hvServices.connectionserver.ConnectionServer_List()[0].general.name
+       
         $Main                            = New-Object system.Windows.Forms.Form
         $Main.ClientSize                 = New-Object System.Drawing.Point(490,363)
         $Main.text                       = "Horizon Security Servers for "+$cs
@@ -271,21 +272,17 @@ $script:txtpcoipexternalurl.text = $pcoipsecuregwurl
 Function SetCSPairingPW {
 
   try {
-  $ConnectionServerId = $script:hvServices.connectionserver.ConnectionServer_List()[0].Id
-  $SSPassword = Read-Host -Prompt 'Specify Security Server Pairing Password' -AsSecureString
-  #Convert Password
-  $BSTRss = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SSPassword)
-  $SSUnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRss)
-  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($SSUnsecurePassword)
-  $SecureString = New-Object VMware.Hv.SecureString
-  $SecureString.Utf8String = $Bytes
-  $PairingData = New-Object VMware.Hv.ConnectionServerSecurityServerPairingData
-  $PairingData.pairingPassword = $SecureString
-  $PairingData.timeoutMinutes = 30
-  $UpdateData = New-Object VMware.Hv.MapEntry
-  $UpdateData.key = 'securityServerPairing'
-  $UpdateData.Value = $PairingData
-  $script:hvServer.connectionserver.ConnectionServer_Update($ConnectionServerId,$UpdateData)
+    $ConnectionServerId = $script:hvServices.connectionserver.ConnectionServer_List()[0].Id
+    $pair = new-object -TypeName VMware.Hv.ConnectionServerSecurityServerPairingData
+    $securestring = new-object -TypeName VMware.Hv.SecureString
+    $enc = [system.Text.Encoding]::UTF8
+    $securestring.Utf8String = $enc.GetBytes('chris')
+    $pair.PairingPassword = $securestring
+    $pair.TimeoutMinutes = 30
+    $mapEntry = new-object -TypeName VMware.Hv.MapEntry
+    $mapEntry.Key = "securityServerPairing"
+    $mapEntry.Value = $pair
+    $script:hvServices.ConnectionServer.ConnectionServer_Update($ConnectionServerId, $mapEntry)
 
   }
 
@@ -302,14 +299,11 @@ Function SetCSPairingPW {
 Function UpdateSS($sstoupdate){
 
   $ssid = $script:sslookup[$sstoupdate]
-  $UpdateGeneral = New-Object VMware.Hv.SecurityServerGeneralData
-  $UpdateGeneral.ExternalURL = $script:txtexternalurl.text
-  $UpdateGeneral.externalPCoIPURL = $script:txtblastexternalurl.text
-  $UpdateGeneral.externalAppblastURL = $script:txtblastexternalurl.text
   $UpdateData = New-Object VMware.Hv.MapEntry
-  $UpdateData.key = 'general'
-  $UpdateData.Value = $UpdateGeneral 
+  $UpdateData.key = 'general.externalURL'
+  $UpdateData.Value = $script:txtexternalurl.text
   $script:hvServices.securityserver.SecurityServer_Update($ssid,$UpdateData)  
+
 
 }
 
