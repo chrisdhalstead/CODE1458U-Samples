@@ -1,12 +1,12 @@
 
 <#
 .SYNOPSIS
-Samples Scripts Using the VMware Horizon API via PowerCLI
+Script to update existing Horizon Security Servers
 	
 .NOTES
   Version:        1.0
   Author:         Chris Halstead - chalstead@vmware.com
-  Creation Date:  7/18/2019
+  Creation Date:  11/2/2020
   Purpose/Change: Initial script development
  #>
 
@@ -18,9 +18,6 @@ Add-Type -AssemblyName System.Windows.Forms
 Function LogintoHorizon {
 
 #Capture Login Information
-
-#Import-Module VMware.VimAutomation.HorizonView
-
 $script:HorizonServer = Read-Host -Prompt 'Enter the Horizon Server Name'
 $Username = Read-Host -Prompt 'Enter the Username'
 $Password = Read-Host -Prompt 'Enter the Password' -AsSecureString
@@ -61,50 +58,183 @@ Function GetSSInfo {
            
            
           $ss = $hvservices.SecurityServer.SecurityServer_List()
+                  
+          $script:sslookup = @{}
 
-          $ss | Format-table -AutoSize -Property @{Name = 'Security Server Name'; Expression = {$_.general.name}},@{Name = 'Server Address'; Expression = {$_.general.ServerAddress}},@{Name = 'PCoIP Secure GW'; Expression = {$_.general.PCoipsecuregatewayinstalled}}`
+          foreach ($item in $ss) {
+        
+            $sslookup.add($item.general.name,$item.id)
+             
+        }
 
-         
+        $cs = $script:hvServices.connectionserver.ConnectionServer_List()[0].general.name
+        $Main                            = New-Object system.Windows.Forms.Form
+        $Main.ClientSize                 = New-Object System.Drawing.Point(490,363)
+        $Main.text                       = "Horizon Security Servers for "+$cs
+        $Main.TopMost                    = $false
+        
+        $lblsecurityservers              = New-Object system.Windows.Forms.Label
+        $lblsecurityservers.text         = "Security Servers: "
+        $lblsecurityservers.AutoSize     = $true
+        $lblsecurityservers.width        = 25
+        $lblsecurityservers.height       = 10
+        $lblsecurityservers.location     = New-Object System.Drawing.Point(18,24)
+        $lblsecurityservers.Font         = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $btnSave                         = New-Object system.Windows.Forms.Button
+        $btnSave.text                    = "OK"
+        $btnSave.width                   = 60
+        $btnSave.height                  = 30
+        $btnSave.location                = New-Object System.Drawing.Point(355,320)
+        $btnSave.Font                    = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $cmdGetSS                        = New-Object system.Windows.Forms.Button
+        $cmdGetSS.text                   = "Get Details"
+        $cmdGetSS.width                  = 90
+        $cmdGetSS.height                 = 30
+        $cmdGetSS.location               = New-Object System.Drawing.Point(381,21)
+        $cmdGetSS.Font                   = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $pcoipsecuregw                    = New-Object system.Windows.Forms.Label
+        $pcoipsecuregw.text              = "PCoIP Secure Gateway Installed:"
+        $pcoipsecuregw.AutoSize          = $true
+        $pcoipsecuregw.width             = 25
+        $pcoipsecuregw.height            = 10
+        $pcoipsecuregw.location          = New-Object System.Drawing.Point(18,62)
+        $pcoipsecuregw.Font              = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $script:chdpgw                   = New-Object system.Windows.Forms.CheckBox
+        $script:chdpgw.AutoSize          = $false
+        $script:chdpgw.width                    = 95
+        $script:chdpgw.height                   = 20
+        $script:chdpgw.location                 = New-Object System.Drawing.Point(231,63)
+        $script:chdpgw.Font                     = New-Object System.Drawing.Font('Tahoma',12)
+        $script:chdpgw.Enabled                  = $false
+        
+        $cmbSS                           = New-Object system.Windows.Forms.ComboBox
+        $cmbSS.width                     = 237
+        $cmbSS.height                    = 20
+        $cmbSS.location                  = New-Object System.Drawing.Point(135,21)
+        $cmbSS.Font                      = New-Object System.Drawing.Font('Tahoma',10)
 
-       
+        foreach ($item in $sslookup.keys) {
 
-$Main                            = New-Object system.Windows.Forms.Form
-$Main.ClientSize                 = New-Object System.Drawing.Point(400,400)
-$Main.text                       = "Horizon Security Servers"
-$Main.TopMost                    = $true
-
-$ComboBox1                       = New-Object system.Windows.Forms.ComboBox
-$ComboBox1.text                  = "SecurityServers"
-$ComboBox1.width                 = 234
-$ComboBox1.height                = 20
-$ComboBox1.location              = New-Object System.Drawing.Point(125,13)
-$ComboBox1.Font                  = New-Object System.Drawing.Font('Tahoma',10)
-$ComboBox1.items
-
-$lblsecurityservers              = New-Object system.Windows.Forms.Label
-$lblsecurityservers.text         = "Security Servers: "
-$lblsecurityservers.AutoSize     = $true
-$lblsecurityservers.width        = 25
-$lblsecurityservers.height       = 10
-$lblsecurityservers.location     = New-Object System.Drawing.Point(11,15)
-$lblsecurityservers.Font         = New-Object System.Drawing.Font('Tahoma',10)
-
-$btnSave                         = New-Object system.Windows.Forms.Button
-$btnSave.text                    = "Save Settings"
-$btnSave.width                   = 109
-$btnSave.height                  = 30
-$btnSave.location                = New-Object System.Drawing.Point(280,361)
-$btnSave.Font                    = New-Object System.Drawing.Font('Tahoma',10)
-
-$Main.controls.AddRange(@($ComboBox1,$lblsecurityservers,$btnSave))
-
-$btnSave.Add_Click({  })
-$ComboBox1.Add_SelectedValueChanged({  })
+          $cmbss.items.add($item)
+           
+        }
+        
+        $hsc                             = New-Object system.Windows.Forms.Label
+        $hsc.text                        = "HTTP(s) Secure Tunnel"
+        $hsc.AutoSize                    = $true
+        $hsc.width                       = 25
+        $hsc.height                      = 10
+        $hsc.location                    = New-Object System.Drawing.Point(10,95)
+        $hsc.Font                        = New-Object System.Drawing.Font('Tahoma',10,[System.Drawing.FontStyle]([System.Drawing.FontStyle]::Bold))
+        
+        $httpexturl                      = New-Object system.Windows.Forms.Label
+        $httpexturl.text                 = "External URL:"
+        $httpexturl.AutoSize             = $true
+        $httpexturl.width                = 25
+        $httpexturl.height               = 10
+        $httpexturl.location             = New-Object System.Drawing.Point(75,120)
+        $httpexturl.Font                 = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $script:txtexternalurl                  = New-Object system.Windows.Forms.TextBox
+        $script:txtexternalurl.multiline        = $false
+        $script:txtexternalurl.width            = 294
+        $script:txtexternalurl.height           = 20
+        $script:txtexternalurl.location         = New-Object System.Drawing.Point(165,118)
+        $script:txtexternalurl.Font             = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $psgw                            = New-Object system.Windows.Forms.Label
+        $psgw.text                       = "PCoIP Secure Gateway"
+        $psgw.AutoSize                   = $true
+        $psgw.width                      = 25
+        $psgw.height                     = 10
+        $psgw.location                   = New-Object System.Drawing.Point(10,160)
+        $psgw.Font                       = New-Object System.Drawing.Font('Tahoma',10,[System.Drawing.FontStyle]([System.Drawing.FontStyle]::Bold))
+        
+        $peurl                           = New-Object system.Windows.Forms.Label
+        $peurl.text                      = "PCoIP External URL:"
+        $peurl.AutoSize                  = $true
+        $peurl.width                     = 25
+        $peurl.height                    = 10
+        $peurl.location                  = New-Object System.Drawing.Point(35,188)
+        $peurl.Font                      = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $script:txtpcoipexternalurl             = New-Object system.Windows.Forms.TextBox
+        $script:txtpcoipexternalurl.multiline   = $false
+        $script:txtpcoipexternalurl.width       = 293
+        $script:txtpcoipexternalurl.height      = 20
+        $script:txtpcoipexternalurl.location    = New-Object System.Drawing.Point(165,184)
+        $script:txtpcoipexternalurl.Font        = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $lblbsg                          = New-Object system.Windows.Forms.Label
+        $lblbsg.text                     = "Blast Secure Gateway"
+        $lblbsg.AutoSize                 = $true
+        $lblbsg.width                    = 25
+        $lblbsg.height                   = 10
+        $lblbsg.location                 = New-Object System.Drawing.Point(10,236)
+        $lblbsg.Font                     = New-Object System.Drawing.Font('Tahoma',10,[System.Drawing.FontStyle]([System.Drawing.FontStyle]::Bold))
+        
+        $lblbeurl                        = New-Object system.Windows.Forms.Label
+        $lblbeurl.text                   = "Blast External URL:"
+        $lblbeurl.AutoSize               = $true
+        $lblbeurl.width                  = 25
+        $lblbeurl.height                 = 10
+        $lblbeurl.location               = New-Object System.Drawing.Point(40,255)
+        $lblbeurl.Font                   = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $script:txtblastexternalurl             = New-Object system.Windows.Forms.TextBox
+        $script:txtblastexternalurl.multiline   = $false
+        $script:txtblastexternalurl.width       = 290
+        $script:txtblastexternalurl.height      = 20
+        $script:txtblastexternalurl.location    = New-Object System.Drawing.Point(165,253)
+        $script:txtblastexternalurl.Font        = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $Lblex1                          = New-Object system.Windows.Forms.Label
+        $Lblex1.text                     = "Example: https://myserver.com:443"
+        $Lblex1.AutoSize                 = $true
+        $Lblex1.width                    = 25
+        $Lblex1.height                   = 10
+        $Lblex1.location                 = New-Object System.Drawing.Point(174,143)
+        $Lblex1.Font                     = New-Object System.Drawing.Font('Tahoma',9)
+        
+        $lblex2                          = New-Object system.Windows.Forms.Label
+        $lblex2.text                     = "Example: 10.0.0.1:4172"
+        $lblex2.AutoSize                 = $true
+        $lblex2.width                    = 25
+        $lblex2.height                   = 10
+        $lblex2.location                 = New-Object System.Drawing.Point(176,208)
+        $lblex2.Font                     = New-Object System.Drawing.Font('Tahoma',9)
+        
+        $lbl3                            = New-Object system.Windows.Forms.Label
+        $lbl3.text                       = "Example: https://myserver.com:8443"
+        $lbl3.AutoSize                   = $true
+        $lbl3.width                      = 25
+        $lbl3.height                     = 10
+        $lbl3.location                   = New-Object System.Drawing.Point(176,278)
+        $lbl3.Font                       = New-Object System.Drawing.Font('Tahoma',9)
+        
+        $btnClose                        = New-Object system.Windows.Forms.Button
+        $btnClose.text                   = "Cancel"
+        $btnClose.width                  = 60
+        $btnClose.height                 = 30
+        $btnClose.location               = New-Object System.Drawing.Point(422,320)
+        $btnClose.Font                   = New-Object System.Drawing.Font('Tahoma',10)
+        
+        $Main.controls.AddRange(@($lblsecurityservers,$btnSave,$cmdGetSS,$pcoipsecuregw,$chdpgw,$cmbSS,$hsc,$httpexturl,$txtexternalurl,$psgw,$peurl,$txtpcoipexternalurl,$lblbsg,$lblbeurl,$txtblastexternalurl,$Lblex1,$lblex2,$lbl3,$btnClose))
+        
+$btnSave.Add_Click({UpdateSS($cmbss.text)})
+$btnClose.Add_Click({[void]$main.close()})
+$cmdGetSS.Add_Click({GetCSServerData($cmbSS.text)})
 
 [void]$main.ShowDialog()
 #Sets the starting position of the form at run time.
 $CenterScreen = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $main.StartPosition = $CenterScreen
+
+
                    
           }
 
@@ -113,19 +243,41 @@ $main.StartPosition = $CenterScreen
           break 
         }
         
-            $ss    
-       
-          } 
      
+       
+    } 
+
+function GetCSServerData($thess)
+
+{
+
+$ssid = $script:sslookup[$thess]
+$soness = $hvservices.SecurityServer.SecurityServer_Get($ssid)
+
+$blastsecuregwurl = $soness.General.ExternalAppblastURL
+$securetunnelurl = $soness.General.ExternalURL
+$pcoipsecuregwurl = $soness.General.ExternalPCoIPURL
+$pcoipsgwinstalled = $soness.General.PcoipSecureGatewayInstalled
+
+
+$script:txtexternalurl.text = $securetunnelurl
+$script:chdpgw.Checked = $pcoipsgwinstalled
+$script:txtblastexternalurl.text = $blastsecuregwurl
+$script:txtpcoipexternalurl.text = $pcoipsecuregwurl
+
+}
+
+
 Function SetCSPairingPW {
 
   try {
   $ConnectionServerId = $script:hvServices.connectionserver.ConnectionServer_List()[0].Id
-  $SSPassword = Read-Host -Prompt 'Specify Security Server Pairing Password' -AsSecureString
+  #$SSPassword = Read-Host -Prompt 'Specify Security Server Pairing Password' -AsSecureString
   #Convert Password
-  $BSTRss = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SSPassword)
-  $SSUnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRss)
-  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($SSUnsecurePassword)
+  #$BSTRss = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SSPassword)
+  #$SSUnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRss)
+  $Secret = 'chris'
+  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Secret)
   $SecureString = New-Object VMware.Hv.SecureString
   $SecureString.Utf8String = $Bytes
   $PairingData = New-Object VMware.Hv.ConnectionServerSecurityServerPairingData
@@ -148,44 +300,31 @@ Function SetCSPairingPW {
 
 }
 
-Function GetSSHealth {
+Function UpdateSS($sstoupdate){
 
-   
-  if ([string]::IsNullOrEmpty($hvserver))
-    {
-        write-host "You are not logged into Horizon"
-        break   
-               
-    }
-        
-                    
-    try {
-                           
-      $ss = $hvservices.SecurityServerHealth.SecurityServerHealth_List()
-               
-        }
-           
-            catch {
-              Write-Host "An error occurred when logging on $_"
-              break 
-            }
-            
-                $ss    
-           
-              }         
- 
+  $ssid = $script:sslookup[$sstoupdate]
+  $UpdateGeneral = New-Object VMware.Hv.SecurityServerGeneralData
+  $UpdateGeneral.externalURL = $script:txtexternalurl.text
+  $UpdateGeneral.externalPCoIPURL = $script:txtblastexternalurl.text
+  $UpdateGeneral.externalAppblastURL = $script:txtblastexternalurl.text
+  $UpdateData = New-Object VMware.Hv.MapEntry
+  $UpdateData.key = 'general'
+  $UpdateData.Value = $UpdateGeneral
+  $script:hvServices.SecurityServer.SecurityServer_Update($ssid,$updatedata)
+
+}
+
 function Show-Menu
   {
     param (
-          [string]$Title = 'VMware Horizon API Menu'
+          [string]$Title = 'VMware Horizon Security Server Management'
           )
        Clear-Host
        Write-Host "================ $Title ================"
              
        Write-Host "Press '1' to Login to Horizon"
        Write-Host "Press '2' to specify Security Server pairing password"
-       Write-Host "Press '7' for Security Server Info"
-       Write-Host "Press '8' for Usage Info"
+       Write-Host "Press '3' to Manage Existing Horizon Security Servers"
        Write-Host "Press 'Q' to quit."
          }
 
@@ -209,38 +348,11 @@ do
     
     '3' {
        
-         GetApplications
+         GetSSInfo
       
     }
 
-    '4' {
-       
-     GetMachines
-   
- }
-
-
- '5' {
-       
-  RebootDT
-
-}
-
-'6' {
-       
-        GetDtPools
-     
-   }
-   '7' {
-       
-    GetSSInfo
- 
-}
-'8' {
-       
-  GetUsage
-
-}
+  
 
     }
     pause
