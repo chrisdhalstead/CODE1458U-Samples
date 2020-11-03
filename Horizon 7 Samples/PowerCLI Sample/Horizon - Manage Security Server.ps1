@@ -247,7 +247,7 @@ $main.StartPosition = $CenterScreen
        
     } 
 
-function GetCSServerData($thess)
+function GetSServerData($thess)
 
 {
 
@@ -281,12 +281,12 @@ Function SetCSPairingPW {
   $SecureString = New-Object VMware.Hv.SecureString
   $SecureString.Utf8String = $Bytes
   $PairingData = New-Object VMware.Hv.ConnectionServerSecurityServerPairingData
-  $PairingData.PairingPassword = $SecureString
-  $PairingData.TimeoutMinutes = 30
+  $PairingData.pairingPassword = $SecureString
+  $PairingData.timeoutMinutes = 30
   $UpdateData = New-Object VMware.Hv.MapEntry
   $UpdateData.key = 'securityServerPairing'
   $UpdateData.Value = $PairingData
-  $script:hvServices.connectionserver.ConnectionServer_Update($ConnectionServerId,$updatedata)
+  $script:hvServer.connectionserver.ConnectionServer_Update($ConnectionServerId,$updatedata)
 
   }
 
@@ -310,7 +310,7 @@ Function UpdateSS($sstoupdate){
   $UpdateData = New-Object VMware.Hv.MapEntry
   $UpdateData.key = 'general'
   $UpdateData.Value = $UpdateGeneral
-  $script:hvServices.SecurityServer.SecurityServer_Update($ssid,$updatedata)
+  $script:hvServices.securityserver.SecurityServer_Update($ssid,$UpdateData)  
 
 }
 
