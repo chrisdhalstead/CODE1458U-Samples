@@ -227,7 +227,7 @@ Function GetSSInfo {
         
 $btnSave.Add_Click({UpdateSS($cmbss.text)})
 $btnClose.Add_Click({[void]$main.close()})
-$cmdGetSS.Add_Click({GetCSServerData($cmbSS.text)})
+$cmdGetSS.Add_Click({GetSSServerData($cmbSS.text)})
 
 [void]$main.ShowDialog()
 #Sets the starting position of the form at run time.
@@ -247,7 +247,7 @@ $main.StartPosition = $CenterScreen
        
     } 
 
-function GetSServerData($thess)
+function GetSSServerData($thess)
 
 {
 
@@ -272,12 +272,11 @@ Function SetCSPairingPW {
 
   try {
   $ConnectionServerId = $script:hvServices.connectionserver.ConnectionServer_List()[0].Id
-  #$SSPassword = Read-Host -Prompt 'Specify Security Server Pairing Password' -AsSecureString
+  $SSPassword = Read-Host -Prompt 'Specify Security Server Pairing Password' -AsSecureString
   #Convert Password
-  #$BSTRss = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SSPassword)
-  #$SSUnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRss)
-  $Secret = 'chris'
-  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Secret)
+  $BSTRss = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SSPassword)
+  $SSUnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRss)
+  $Bytes = [System.Text.Encoding]::UTF8.GetBytes($SSUnsecurePassword)
   $SecureString = New-Object VMware.Hv.SecureString
   $SecureString.Utf8String = $Bytes
   $PairingData = New-Object VMware.Hv.ConnectionServerSecurityServerPairingData
@@ -286,7 +285,7 @@ Function SetCSPairingPW {
   $UpdateData = New-Object VMware.Hv.MapEntry
   $UpdateData.key = 'securityServerPairing'
   $UpdateData.Value = $PairingData
-  $script:hvServer.connectionserver.ConnectionServer_Update($ConnectionServerId,$updatedata)
+  $script:hvServer.connectionserver.ConnectionServer_Update($ConnectionServerId,$UpdateData)
 
   }
 
@@ -304,12 +303,12 @@ Function UpdateSS($sstoupdate){
 
   $ssid = $script:sslookup[$sstoupdate]
   $UpdateGeneral = New-Object VMware.Hv.SecurityServerGeneralData
-  $UpdateGeneral.externalURL = $script:txtexternalurl.text
+  $UpdateGeneral.ExternalURL = $script:txtexternalurl.text
   $UpdateGeneral.externalPCoIPURL = $script:txtblastexternalurl.text
   $UpdateGeneral.externalAppblastURL = $script:txtblastexternalurl.text
   $UpdateData = New-Object VMware.Hv.MapEntry
   $UpdateData.key = 'general'
-  $UpdateData.Value = $UpdateGeneral
+  $UpdateData.Value = $UpdateGeneral 
   $script:hvServices.securityserver.SecurityServer_Update($ssid,$UpdateData)  
 
 }
