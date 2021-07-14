@@ -242,7 +242,7 @@ Function Writables_Usage_Report {
     Add-Content -Path $script:mydocs\wv_usage_$script:date.csv  -Value '"Name","Total Size in MB","Free Size in MB","% Available"'
                
     $sresult.datastores.writable_volumes | Select-Object -Property @{Name = 'Name'; Expression = {$_.name}},@{Name = 'Total Size in MB'; Expression = {$_.total_mb}},@{Name = 'Free Size in MB'; Expression = {$_.free_mb}},@{Name = '% Available'; Expression = {$_.percent_available}} | Export-Csv -path $script:mydocs\wv_usage_$script:date.csv -NoTypeInformation
-    Write-host "Writing data to CSV.."   
+    Write-host "Writing data to  $script:mydocs\wv_usage_$script:date.csv"   
 }  
 
 Function Activity_Log {
